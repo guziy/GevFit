@@ -1,3 +1,4 @@
+import test_median
 import os
 import data_select
 import gevfit
@@ -35,9 +36,18 @@ class Test_median():
         self.median_field = None
         self.ret_level_2yr = None
 
+        self.longitudes = polar_stereographic.lons[i_indices, j_indices]
+        self.latitudes = polar_stereographic.lats[i_indices, j_indices]
+
+    def get_indices_in_2d_grid(self):
+        return self._i_indices, self._j_indices
 
 
-    def select_data_and_calculate(self):
+
+    def select_data_and_calculate(self, save_txt_file = False):
+        '''
+        Calculate 2 yr return levels and the corresponding median
+        '''
         if self.high_flow:
             self.data_extremes = data_select.get_list_of_annual_maximums_for_domain(self._data, self._times,
                                         start_date = self.start_date, end_date = self.end_date,
@@ -51,10 +61,11 @@ class Test_median():
 
 
         the_type = 'high' if self.high_flow else 'low'
-        save_extremes_to_txt_file('{0}_{1}_values.txt'.format(self._id, the_type), self.data_extremes, self._i_indices, self._j_indices)
+        if save_txt_file:
+            save_extremes_to_txt_file('{0}_{1}_values.txt'.format(self._id, the_type),
+                                      self.data_extremes, self._i_indices, self._j_indices)
         
         self._calculate_median_field()
-        print 'calculated median field'
         self._calculate_return_level_field()
         pass
 
@@ -64,12 +75,12 @@ class Test_median():
         #cycle through the points of the domain
         for pos in range(len(self._i_indices)):
             values = self.data_extremes[pos]
-            if np.median(values) > 10000:
-                print values
             self.median_field.append(np.median(values))
+
+        self.median_field = np.array(self.median_field)
         pass
 
-    def _calculate_return_level_field(self):
+    def _calculate_return_level_field(self, save_to_txt_file = False):
         if self.high_flow:
             field = gevfit.get_high_levels_for_id(self._id, return_period = self.return_period_years)
         else:
@@ -79,17 +90,22 @@ class Test_median():
 
         the_type = 'high' if self.high_flow else 'low'
 
-        save_ret_levels_to_txt('{0}_{1}yr_{2}_ret_level.txt'.format(self._id, self.return_period_years, the_type),
-                                    field, self._i_indices, self._j_indices)
+        if save_to_txt_file:
+            save_ret_levels_to_txt('{0}_{1}yr_{2}_ret_level.txt'.format(self._id,
+                                        self.return_period_years, the_type),
+                                        field, self._i_indices, self._j_indices)
 
-        save_pars_to_txt_file('{0}_{1}_params.txt'.format(self._id, the_type),
-                            gevfit.get_gevd_params_for_id_and_type(self._id, self.high_flow) ,self._i_indices, self._j_indices)
+            save_pars_to_txt_file('{0}_{1}_params.txt'.format(self._id, the_type),
+                                gevfit.get_gevd_params_for_id_and_type(self._id, self.high_flow),
+                                self._i_indices, self._j_indices)
 
 
 
         self.ret_level_2yr = []
         for k in range(len(self._i_indices)):
             self.ret_level_2yr.append(field[k])
+
+        self.ret_level_2yr = np.array(self.ret_level_2yr)
 
 
     def plot(self):
@@ -147,12 +163,14 @@ def save_ret_levels_to_txt(filename, data, i_indices, j_indices):
 
 
 
+
+
 def main():
 
 
     paths = [
-        'data/streamflows/hydrosheds_euler3/aet_discharge_1970_01_01_00_00.nc',
-        'data/streamflows/hydrosheds_euler3/aeu_discharge_2041_01_01_00_00.nc'
+        'data/streamflows/hydrosheds_euler9/aet_discharge_1970_01_01_00_00.nc',
+        'data/streamflows/hydrosheds_euler9/aeu_discharge_2041_01_01_00_00.nc'
     ]
 
 
@@ -166,8 +184,8 @@ def main():
     type_to_end_month = {'low':4,'high':6}
     type_to_duration = {'low':timedelta(days = 15),'high':timedelta(days = 1)}
 
-    low_return_periods = [2, 5]
-    high_return_periods = [30, 50, 100]
+    #low_return_periods = [2, 5]
+    high_return_periods = [10]
 
     the_type = 'high'
     for path in paths:
@@ -185,6 +203,10 @@ def main():
 
             print 'path={0}, the_type = {1}, the_period = {2}'.format(path, the_type, the_period)
             test_median.select_data_and_calculate()
+            #plot
+            test_median.plot()
+            return
+
 
     the_type = 'low'
     for path in paths:

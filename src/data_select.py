@@ -7,7 +7,7 @@ import numpy as np
 from datetime import timedelta
 from datetime import datetime
 #import netCDF4 as nc
-
+from data.query_object import QueryObject
 
 def get_field_from_file(path = '', field_name = ''):
     fpin = NetCDFFile(path)
@@ -37,7 +37,7 @@ def get_data_from_file(path):
 
 
 #get i_indices and j_indices from a file
-def get_indices_from_file(path = 'data/hydrosheds_euler9/aex_discharge_1970_01_01_00_00.nc'):
+def get_indices_from_file(path = 'data/streamflows/hydrosheds_euler9/aex_discharge_1970_01_01_00_00.nc'):
     fpin = NetCDFFile(path)
     vars = fpin.variables
 
@@ -116,7 +116,6 @@ def get_period_maxima(streamflows, times,
     while (averaging_length - 1) * dt1 < event_duration:
         averaging_length += 1
 
-
     result = {}
     for i, time in enumerate(times):
         time_plus_duration = time + event_duration
@@ -153,6 +152,10 @@ def get_list_of_annual_maximums_for_domain(streamflows, times,
                       start_date = None, end_date = None,
                       start_month = 1,
                       end_month = 12, event_duration = timedelta(days = 1)):
+    '''
+    returns annual maxima
+    list (along posittions) of lists(along year) of maximum values
+    '''
     result = []
     for pos in range(streamflows.shape[1]):
         the_dict = get_period_maxima(streamflows[:, pos],
@@ -209,6 +212,21 @@ def get_maximums_for_domain(streamflows, times,
         the_maxima[pos] =  np.max(the_dict.values())
 
     return the_maxima
+
+
+def get_period_maxima_query(streamflows, times, queryObject):
+    '''
+    returns maxima, list of lists of maximums for each point of the domain
+    '''
+    # @type queryObject QueryObject
+    return get_list_of_annual_maximums_for_domain(streamflows, times,
+                start_date = queryObject.start_date,
+                end_date = queryObject.end_date,
+                start_month = queryObject.start_month,
+                end_month = queryObject.end_month,
+                event_duration = queryObject.event_duration
+        )
+    pass
 
 
 

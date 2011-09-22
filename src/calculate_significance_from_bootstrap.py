@@ -3,6 +3,7 @@ __date__ ="$3 fevr. 2011 09:35:44$"
 
 
 
+from data.query_object import QueryObject
 import members
 import gevfit
 
@@ -21,21 +22,29 @@ import pylab
 
 import matplotlib_helpers.my_colormaps as mycolors
 
+from mpl_toolkits.basemap import Basemap
 
+
+from datetime import datetime
+from datetime import timedelta
 
 from map_parameters import polar_stereographic
 basemap = polar_stereographic.basemap
 xs = polar_stereographic.xs
 ys = polar_stereographic.ys
 
+import save_to_file_rls_and_sign as txt_saver
+
+from matplotlib.colors import ListedColormap
+
 
 inches_per_pt = 1.0 / 72.27               # Convert pt to inch
 golden_mean = (sqrt(5) - 1.0) / 2.0       # Aesthetic ratio
-fig_width = 600 * inches_per_pt          # width in inches
+fig_width = 900 * inches_per_pt          # width in inches
 fig_height = fig_width * golden_mean      # height in inches
 fig_size = [fig_width, 2.5 * fig_height]
 
-font_size = 14
+font_size = 13
 
 params = {
         'axes.labelsize': font_size,
@@ -74,7 +83,8 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
          units = '',
          colorbar_orientation = 'vertical' , basemap = None,
          colorbar_tick_locator = LinearLocator(numticks = 6),
-         colorbar_label_format = '%.1f', upper_limited = False, not_significant_mask = None):
+         colorbar_label_format = '%.1f', upper_limited = False,
+         not_significant_mask = None, show_colorbar = True):
 
 
     plt.title(title, {'fontsize': font_size})
@@ -116,25 +126,22 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
     plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
 
     #plot colorbar
-    cb = plt.colorbar(ticks = colorbar_tick_locator,
-                      orientation = colorbar_orientation,
-                      format = colorbar_label_format
-                      )
+    if show_colorbar:
+        cb = plt.colorbar(ticks = colorbar_tick_locator,
+                          orientation = colorbar_orientation,
+                          format = colorbar_label_format
+                          )
 
 
-    cb.ax.set_xlabel(units)
-    if upper_limited:
-        cl = cb.ax.get_yticklabels()
-        labels = []
-        for text in cl:
-            labels.append(text.get_text())
+        cb.ax.set_xlabel(units)
+        if upper_limited:
+            cl = cb.ax.get_yticklabels()
+            labels = []
+            for text in cl:
+                labels.append(text.get_text())
 
-        labels[-1] = '$\\geq$' + labels[-1]
-        cb.ax.set_yticklabels(labels)
-
-
-
-
+            labels[-1] = '$\\geq$' + labels[-1]
+            cb.ax.set_yticklabels(labels)
 
 
 def calculate_and_plot(return_period = 10,
@@ -146,14 +153,51 @@ def calculate_and_plot(return_period = 10,
         level_type = 'low'
 
     plt.clf()
-    i_indices, j_indices = data_select.get_indices_from_file('data/streamflows/hydrosheds_euler9/aex_discharge_1970_01_01_00_00.nc')
+
+
+
+    folder_path = 'data/streamflows/hydrosheds_euler9/'
+    i_indices, j_indices = data_select.get_indices_from_file(folder_path + 'aex_discharge_1970_01_01_00_00.nc')
     significance_counter = None
     plt.subplots_adjust(left = 0., hspace = 0.2, wspace = 0.2)
 
-  
+
+
+    ##for querying high flow data for saving to text file
+    if level_type == 'high':
+        high_period_start_month = 3
+        high_period_end_month = 7
+
+        current_start_date = datetime(1970,1,1,0,0)
+        current_end_date = datetime(1999,12,31,0,0)
+
+        future_start_date = datetime(2041,1,1,0,0)
+        future_end_date = datetime(2070,12,31,0,0)
+
+        future_query = QueryObject()
+        future_query.start_date = future_start_date
+        future_query.end_date = future_end_date
+        future_query.event_duration = timedelta(days = 1)
+        future_query.start_month = high_period_start_month
+        future_query.end_month = high_period_end_month
+
+        current_query = QueryObject()
+        current_query.start_date = current_start_date
+        current_query.end_date = current_end_date
+        current_query.event_duration = timedelta(days = 1)
+        current_query.start_month = high_period_start_month
+        current_query.end_month = high_period_end_month
+
 
     for k, current_id in enumerate(members.current_ids):
+        if level_type == 'high':
+            current_path = folder_path + '{0}_discharge_1970_01_01_00_00.nc'.format(current_id)
+            future_path = folder_path + '{0}_discharge_2041_01_01_00_00.nc'.format(members.current2future[current_id])
+            current_data, times_current, x_indices, y_indices = data_select.get_data_from_file(current_path)
+            future_data, times_future, x_indices, y_indices = data_select.get_data_from_file(future_path)
 
+            current_highs = data_select.get_period_maxima_query(current_data, times_current, current_query)
+            future_highs = data_select.get_period_maxima_query(future_data, times_future, future_query)
 
         #get current return levels
         pars_list = get_pars_for_member_and_type(current_id, level_type)
@@ -233,7 +277,18 @@ def calculate_and_plot(return_period = 10,
                     upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 9),
                     not_significant_mask = not_significant
                     )
-      
+
+        if return_period == 10 and level_type == 'high':
+            txt_saver.save_to_file_rls_and_sign(current_id, return_period,
+                                      return_levels_current, return_levels_future,
+                                      stdevs_current, stdevs_future,
+                                      condition, current_highs, future_highs)
+    
+    return
+
+
+
+
         
     plt.subplot(3,2,6)
 
@@ -248,7 +303,183 @@ def calculate_and_plot(return_period = 10,
 
 
 
+def get_column(index, lines, sep = ';'):
+    '''
+    get column index from lines, where columns are separated
+    with sep
+    '''
+    selector = lambda x: x.split(sep)[index]
+    sel1 = map(selector, lines)
+    sel2 = map(float, sel1)
+    return sel2
+
+
+def plot_naveed_troubled_points(path = 'data/data_txt_naveed/TroubledGridCells_AtLeast3Sims.csv'):
+    f = open(path)
+
+    lines = f.readlines()
+    if len(lines) == 1:
+        lines = lines[0].split('\r')
+    f.close()
+
+    #skip header
+    while len(lines) > 0:
+        line = lines.pop(0)
+        if 'stationsri' in line.lower():
+            break
+
+    print lines
+
+    folder_path = 'data/streamflows/hydrosheds_euler9/'
+    i_indices, j_indices = data_select.get_indices_from_file(folder_path + 'aex_discharge_1970_01_01_00_00.nc')
+
+
+    cols = [1,2,3]
+    names = ['C', 'F', 'Both']
+
+
+    color_map = ListedColormap(['r','b', 'g'])
+    plt.subplots_adjust(hspace = 0.0001)
+    for c, name in zip(cols, names):
+        plt.subplot(2,2,c)
+        to_plot = np.ma.masked_all(xs.shape)
+        data = get_column(c, lines)
+        print data
+        for i, j, v in zip(i_indices, j_indices, data):
+            if v != 0: #no color for 0
+                to_plot[i, j] = v
+            else:
+                to_plot[i, j] = 3
+
+        basemap.pcolormesh(xs, ys, to_plot.copy(), cmap = color_map,
+                          shading = 'flat', rasterized = False )
+
+
+        plot_basin_boundaries_from_shape(basemap, plotter = plt, linewidth = 1, edge_color = 'k')
+        basemap.drawcoastlines(linewidth = 0.5)
+
+        plot_utils.draw_meridians_and_parallels(basemap, step_degrees = 30)
+
+        plt.title(name)
+
+        ymin, ymax = plt.ylim()
+        plt.ylim(ymin + 0.05 * (ymax - ymin) , ymax * 0.25)
+
+        xmin, xmax = plt.xlim()
+        plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
+
+    cb = plt.colorbar(shrink = 0.5, format = '%d')
+    cb.set_ticks([1.25, 2, 2.75])
+    cb.set_ticklabels([1,2,3])
+    
+
+    plt.savefig('TroubledGridCells_AtLeast3Sims.pdf', bbox_inches = 'tight')
+
+    pass
+
+def plot_naveed_data(path = 'data/data_txt_naveed/3_all_for_plotting.csv'):
+    '''
+    plotting data calculated by Naveed
+    '''
+    f = open(path)
+
+    lines = f.readlines()
+    f.close()
+
+    #skip header
+    while len(lines) > 0:
+        line = lines.pop(0)
+        if line.startswith('stationSrI'):
+            break
+
+    
+
+    folder_path = 'data/streamflows/hydrosheds_euler9/'
+    i_indices, j_indices = data_select.get_indices_from_file(folder_path + 'aex_discharge_1970_01_01_00_00.nc')
+
+
+    return_periods = [2,10,30]
+    level_cols = [4,5,6]
+    sig95_cols = [9,10,11]
+    sig90_cols = [14, 15, 16]
+
+    sets = zip(level_cols, return_periods, sig95_cols, sig90_cols)
+
+    subplot_count = 1
+    for lev_col, period, sig95_col, sig90_col in sets:
+        for sig_col in [sig95_col, sig90_col]:
+            ret_lev = np.array(get_column(lev_col, lines))
+            plt.subplot(3,2,subplot_count)
+            significance = 1 - np.array(get_column(sig_col, lines))
+            ret_lev = np.ma.masked_where(significance == 1, ret_lev)
+
+            significance *= 0.75
+            significance = np.ma.masked_where(significance == 0, significance)
+
+            delta = 50
+            sig_level = '95%' if sig_col == sig95_col else '90%'
+            plot(ret_lev , i_indices, j_indices, xs, ys,
+                        title = 'T = %d year, conf. (%s)' % (period, sig_level),
+                        color_map = mycolors.get_red_blue_colormap(ncolors = 16), units = '%',
+                        basemap = basemap, minmax = (-delta, delta),
+                        colorbar_label_format = '%d',
+                        upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 9),
+                        not_significant_mask = significance, show_colorbar = (subplot_count == 6)
+                        )
+            subplot_count += 1
+    plt.savefig('3_all_for_plotting.pdf', bbox_inches = 'tight')
+    
+    return
+
+    plt.figure()
+    b = Basemap(resolution = 'i')
+    plt.subplot(2,1,1)
+    medians = get_column(1, lines)
+    to_plot = np.ma.masked_all(polar_stereographic.lons.shape)
+    for i, j, med in zip(i_indices, j_indices, medians):
+        to_plot[i,j] = med
+
+    b.pcolormesh(polar_stereographic.lons, polar_stereographic.lats, to_plot)
+    b.drawcoastlines()
+    plt.colorbar(shrink = 0.5)
+
+    cond = ~to_plot.mask
+    min_lon = polar_stereographic.lons[cond].min()
+    max_lon = polar_stereographic.lons[cond].max()
+
+    min_lat = polar_stereographic.lats[cond].min()
+    max_lat = polar_stereographic.lats[cond].max()
+
+    marginx = 0.05 * (max_lon - min_lon)
+    marginy = 0.05 * (max_lat - min_lat)
+
+    plt.xlim(min_lon - marginx, max_lon + marginx)
+    plt.ylim(min_lat - marginy, max_lat + marginy)
+    plt.title('median change (%)')
+
+
+    plt.subplot(2,1,2)
+    pvalues = get_column(2, lines)
+    to_plot = np.ma.masked_all(polar_stereographic.lons.shape)
+    for i, j, pvalue in zip(i_indices, j_indices, pvalues):
+        to_plot[i,j] = pvalue
+
+
+    b.pcolormesh(polar_stereographic.lons, polar_stereographic.lats, to_plot)
+    b.drawcoastlines()
+    plt.colorbar(shrink = 0.5)
+    plt.title('p-value for median change')
+    marginx = 0.05 * (max_lon - min_lon)
+    marginy = 0.05 * (max_lat - min_lat)
+    plt.xlim(min_lon - marginx, max_lon + marginx)
+    plt.ylim(min_lat - marginy, max_lat + marginy)
+    plt.savefig('median.pdf', bbox_inches = 'tight')
+
+
+    pass
+
 def main():
+
     high_ret_periods = [10, 30, 50]
     low_ret_periods = [2, 5, 10]
 
@@ -258,6 +489,7 @@ def main():
 
     for ret_period in high_ret_periods:
         calculate_and_plot(ret_period, gevfit.get_high_ret_level_stationary)
+    return
          
 
     for ret_period in low_ret_periods:
@@ -268,5 +500,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    #tmp
+    #plot_naveed_data()
+    plot_naveed_troubled_points()
+    #main()
     print "Hello World"

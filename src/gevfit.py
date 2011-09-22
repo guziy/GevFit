@@ -90,8 +90,8 @@ def get_high_ret_level_stationary(pars, return_period):
         return -1
     sigma, mu, ksi, zero_fraction = pars
 
-    y = np.log(float(return_period) / (return_period - 1.0) )
-    if np.abs(ksi) < 1.0e-2:
+    y = np.log(float(return_period) / (float(return_period) - 1.0) )
+    if np.abs(ksi) < 1.0e-5:
         lev = -sigma * np.log(y) + mu
     else:
         lev = sigma / ksi * ( np.power( y , -ksi) - 1.0 ) + mu
@@ -106,7 +106,7 @@ def get_low_ret_level(params = [], return_period = 2, zero_fraction = 0.0):
     if 1.0 / return_period <= zero_fraction:
         return 0
 
-    if params[0] == None:
+    if params[0] is None:
         return -1
     sigma, mu, ksi = params
 
@@ -150,10 +150,10 @@ def plot_data(data = None, imagefile = 'image.png',
               ticks_locator = LinearLocator(),
               i_list = None, j_list = None, title = ''):
 
-    if imagefile != None:
+    if imagefile is not None:
         plt.clf()
 
-    if i_list == None or j_list == None:
+    if i_list is None or j_list is None:
         i_list, j_list = data_select.get_indices_from_file(indices_file)
     to_plot = np.ma.masked_all(xs.shape)
     for i, j, value in zip(i_list, j_list, data):
@@ -178,23 +178,23 @@ def plot_data(data = None, imagefile = 'image.png',
     plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
 
     
-    if imagefile != None:
+    if imagefile is not None:
         plt.savefig(imagefile, bbox_inches = 'tight')
 
 
 
 
 def qfunc(x, sigma, mu, ksi):
-    '''
+    """
     Helper function (1 + ksi*(x - mu) / sigma)^(-1/ksi)
-    '''
+    """
     if sigma <= 1.0e-10: #sigma > 0
         return None
 
     if 1.0 + ksi * (x - mu) / sigma <= 0:
         return None
 
-    if abs(ksi) <= 1.0e-2: #ksi != 0
+    if abs(ksi) <= 1.0e-5: #ksi != 0
         the_power = -(x - mu) / sigma
         result = np.exp(the_power)
         assert result > 0, 'the_power = {0}, mu = {1}, sigma = {2}'.format(the_power, mu, sigma)
@@ -207,7 +207,7 @@ def qfunc(x, sigma, mu, ksi):
     if isinf(result) or result == 0:
         return None
 
-    if result == 0:
+    if not result:
         print x, mu, sigma
         print the_base
         print -1.0 / ksi
@@ -229,12 +229,12 @@ def objective_function_stationary_high(pars, data):
 
     ksi_probability = ksi_pdf(ksi)
 
-    if ksi_probability == 0:
+    if not ksi_probability:
         return BIG_NUM
 
     for the_data in data:
         qi = qfunc(the_data, sigma, mu, ksi)
-        if qi == None:
+        if qi is None:
             return BIG_NUM
         assert qi > 0, 'qi = {0}'.format(qi)
        
@@ -248,19 +248,22 @@ def objective_function_stationary_high(pars, data):
 
 #-ln(gevpdf* ksi_pdf)
 def objective_function_stationary_low(pars, data):
+    """
+    objective function to minimize for stationary case
+    """
     result = 0.0
     sigma, mu, ksi = pars
 
 
     ksi_probability = ksi_pdf(ksi)
 
-    if ksi_probability == 0:
+    if not ksi_probability:
         return BIG_NUM
 
 
     for the_data in data:
         qi = qfunc(the_data, sigma, mu, ksi)
-        if qi == None:
+        if qi is None:
             return BIG_NUM
         assert qi > 0, 'qi = {0}'.format(qi)
         minus_ln_pdfi = np.log(sigma) - (ksi + 1.0) * log(qi) + qi - log(ksi_probability)
@@ -285,7 +288,7 @@ def get_initial_params(vals):
 
     sigma0 = np.sqrt(6.0 * np.cov(vals, bias = bias)) / pi
 
-    if sigma0 == 0:
+    if not sigma0:
         sigma0 = 0.2 * np.mean(vals)
 
     mu0 = np.mean(vals) - 0.57722 * sigma0
@@ -315,18 +318,37 @@ def optimize_stationary_using_derivatives(extremes):
 #returns [sigma, mu, ksi, zero_fraction]
 def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = False):
 
-    extremes = 1.0e6 * extremes
+
+    the_min = np.min(extremes)
+    if (the_min < 100):
+        factor = 100.0 / the_min if the_min > 0 else 1.0
+    else:
+        factor = 1.0
+
+   
+
+    
+
+    
+    indices = np.where(extremes > 0)
+    zero_fraction = 1.0 - extremes[indices].shape[0] / float(len(extremes))
 
     #if all values are 0, do not optimize, return None for the parametes values
-    if np.min(extremes) < 1.0:
+    if zero_fraction >= 0.5:
         return [None, None, None, 1.0]
 
-    indices = np.where(extremes > 1)
-    zero_fraction = 1.0 - extremes[indices].shape[0] / float(len(extremes))
+    the_min = np.min(extremes[indices])
+    if (the_min < 100):
+        factor = 100.0 / the_min
+    else:
+        factor = 1.0
+
+    extremes = factor * extremes
+
 
     ##L-moments
     if use_lmoments:
-        extremes /= 1.0e6
+        #extremes /= 1.0e6
         pars = get_initial_params_using_lm(extremes[indices])
         pars.append(zero_fraction)
         lev = get_high_ret_level_stationary(pars, 10.0)
@@ -373,10 +395,10 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
 
 
     if warnflag != 0:
-        print extremes
+        print list(extremes)
         print warnflag
         print pars
-        assert False
+        assert False, 'warnflag != 0'
 
 
     #assert warnflag == 0, 'warnflag = {0}, z = {1}, \n extremes = {2}'.format(warnflag, z, str(extremes))
@@ -400,9 +422,10 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
     assert z != BIG_NUM, 'z == BIG_NUM'
     assert z >= 0, 'z < 0'
 
-    pars[0] = pars[0] / (1.0e6)
-    pars[1] = pars[1] / (1.0e6)
+    pars[0] = pars[0] / factor
+    pars[1] = pars[1] / factor
     pars = np.append(pars, zero_fraction)
+    extremes /= factor #change back the extremes
     return pars
 
 
@@ -414,7 +437,12 @@ def optimize_stationary_for_period_and_all_cells_using_data(
     pars_set = []
     #for all grid cells
     for pos in range(data.shape[1]):
+#        print pos
+#        print '-'*10
+#        print 'data'
+#        print list(data[:, pos])
         pars = optimize_stationary_for_period(data[:,pos], high_flow = high_flow)
+#        print 'pars = ', pars
         pars_set.append(pars)
     return pars_set
 
@@ -583,7 +611,9 @@ def get_levels_for_type_and_id(id, return_period = None, type = 'high'):
 
 
 def get_high_levels_for_id(id, prefix = 'gev_params_stationary', postfix = '_high' , return_period = 10):
+
     file = prefix + '_' + id + postfix
+    print file
     pars_set = pickle.load(open(file))
 
     field = np.zeros((len(pars_set),))
@@ -613,7 +643,7 @@ class TypePeriodKey():
 ### changes between current and future climate
 def stationary():
 
-    data_folder = 'data/streamflows/hydrosheds_euler10_spinup100yrs'
+    data_folder = 'data/streamflows/hydrosheds_euler9'
     current_data_path_pattern = '%s_discharge_1970_01_01_00_00.nc'
     future_data_path_pattern = '%s_discharge_2041_01_01_00_00.nc'
 
@@ -646,90 +676,59 @@ def stationary():
 
     plot_return_levels = False
 
+    extreme_types = ['low', 'high']
 
     #calculate parameters of the gev distriution for each member
     #calculate and plot return levels
-    for current_id in members.current_ids:
-        param_file = 'gev_params_stationary'
-        param_file += '_' + current_id + '_low'
-        data_file = current_data_path_pattern % current_id
-        data_file = os.path.join(data_folder, data_file)
-        pars_set = optimize_stationary_for_period_and_all_cells(data_file,
-                paramfile = param_file , 
-                high_flow = False,
-                start_month = low_start_month,
-                end_month = low_end_month,
-                start_date = current_start_date,
-                end_date = current_end_date,
-                event_duration = low_event_duration)
+    for extreme_type in extreme_types:
+        start_month = low_start_month if extreme_type == 'low' else high_start_month
+        end_month = low_end_month if extreme_type == 'low' else high_end_month
+        event_duration = low_event_duration if extreme_type == 'low' else high_event_duration
 
-        if plot_return_levels:
-            for period in low_return_periods:
-                plot_low_flows(period = period,
-                       imagefile = '%drlevel_low_stationary_%s.png' % (period, current_id),
-                       pars_set = pars_set)
+        for current_id in members.current_ids:
+            param_file = 'gev_params_stationary'
+            param_file += '_' + current_id + '_' + extreme_type
+            data_file = current_data_path_pattern % current_id
+            data_file = os.path.join(data_folder, data_file)
+            pars_set = optimize_stationary_for_period_and_all_cells(data_file,
+                    paramfile = param_file ,
+                    high_flow = (extreme_type == 'high'),
+                    start_month = start_month,
+                    end_month = end_month,
+                    start_date = current_start_date,
+                    end_date = current_end_date,
+                    event_duration = event_duration)
 
+            if plot_return_levels:
+                for period in low_return_periods:
+                    plot_low_flows(period = period,
+                           imagefile = '%drlevel_%s_stationary_%s.png' % (period, extreme_type, current_id),
+                           pars_set = pars_set)
+                           
 
-        
-
-        param_file = 'gev_params_stationary'
-        param_file += '_' + current_id + '_high'
-        pars_set = optimize_stationary_for_period_and_all_cells(data_file,
-                paramfile = param_file ,
-                high_flow = True,
-                start_month = high_start_month,
-                end_month = high_end_month,
-                start_date = current_start_date,
-                end_date = current_end_date,
-                event_duration = high_event_duration)
-
-        if plot_return_levels:
-            for period in high_return_periods:
-                plot_high_flows(period = period, imagefile = '%drlevel_high_stationary_%s.png' % (period, current_id),
-                                pars_set = pars_set)
-
-        
-
-    print 'Finished optimizing for current climate'
-
+        print 'Finished optimizing for current climate'
 
     
-    for future_id in members.future_ids:
-        param_file = 'gev_params_stationary'
-        param_file += '_' + future_id + '_low'
-        data_file = future_data_path_pattern % future_id
-        data_file = os.path.join(data_folder, data_file)
-        pars_set = optimize_stationary_for_period_and_all_cells(data_file,
-                paramfile = param_file ,
-                high_flow = False,
-                start_month = low_start_month,
-                end_month = low_end_month,
-                start_date = future_start_date,
-                end_date = future_end_date,
-                event_duration = low_event_duration)
+        for future_id in members.future_ids:
+            param_file = 'gev_params_stationary'
+            param_file += '_' + future_id + '_' + extreme_type
+            data_file = future_data_path_pattern % future_id
+            data_file = os.path.join(data_folder, data_file)
+            pars_set = optimize_stationary_for_period_and_all_cells(data_file,
+                    paramfile = param_file ,
+                    high_flow = (extreme_type == 'high'),
+                    start_month = start_month,
+                    end_month = end_month,
+                    start_date = future_start_date,
+                    end_date = future_end_date,
+                    event_duration = event_duration)
 
 
-        if plot_return_levels:
-            for period in low_return_periods:
-                plot_low_flows(period = period, imagefile = '%drlevel_low_stationary_%s.png' % (period, future_id),
-                       pars_set = pars_set)
-        
+            if plot_return_levels:
+                for period in low_return_periods:
+                    plot_low_flows(period = period, imagefile = '%drlevel_%s_stationary_%s.png' % (period, extreme_type ,future_id),
+                           pars_set = pars_set)
 
-        param_file = 'gev_params_stationary'
-        param_file += '_' + future_id + '_high'
-        pars_set = optimize_stationary_for_period_and_all_cells(data_file,
-                paramfile = param_file ,
-                high_flow = True,
-                start_month = high_start_month,
-                end_month = high_end_month,
-                start_date = future_start_date,
-                end_date = future_end_date,
-                event_duration = high_event_duration)
-
-        if plot_return_levels:
-            for period in high_return_periods:
-                plot_high_flows(period = period, imagefile = '%drlevel_high_stationary_%s.png' % (period, future_id),
-                        pars_set = pars_set)
 
 
     print 'Finished optimizing for future climate'
@@ -903,161 +902,7 @@ def test():
     print BIG_NUM
 
 
-def gev_fit_all_members(high_flow = True, member_ids = [], data_folder = '', file_name_pattern = '',
-                        start_date = None, end_date = None, start_month = 1, end_month = 12, duration_days = timedelta(days = 1)):
 
-    param_file = 'high' if high_flow else 'low'
-    for id in member_ids:
-        param_file += '_' + id
-    if os.path.isfile(param_file):
-        print 'delete {0}, to reoptimize'.format(param_file)
-        return pickle.load(open(param_file))
-
-    #select data
-    path_pattern = os.path.join(data_folder, file_name_pattern)
-    all_extremes = []
-    for id in member_ids:
-        print id
-        the_path = path_pattern.format(id)
-        streamflow, times, i_indices, j_indices = data_select.get_data_from_file(the_path)
-
-        if len(all_extremes) == 0:
-            for i in range(streamflow.shape[1]):
-                all_extremes.append([])
-
-
-        for pos in range(streamflow.shape[1]):
-            if high_flow:
-                data1 = data_select.get_period_maxima(streamflow[:, pos], times,
-                                start_date = start_date,
-                                end_date = end_date,
-                                start_month = start_month,
-                                end_month = end_month,
-                                event_duration = duration_days
-                                )
-            else:
-                data1 = data_select.get_period_minima(streamflow[:, pos], times,
-                                start_date = start_date,
-                                end_date = end_date,
-                                start_month = start_month,
-                                end_month = end_month,
-                                event_duration = duration_days
-                                )
-            all_extremes[pos].extend(data1.values())
-
-
-    all_extremes = np.array(all_extremes).transpose()
-
-
-
- 
-    if np.any(all_extremes == None):
-        assert False, 'all_extremes = ' + str(all_extremes)
-
-    #optimize
-    print all_extremes.shape
-    assert all_extremes.shape[1] == 547
-    param_set = optimize_stationary_for_period_and_all_cells_using_data(data = all_extremes,
-                                        high_flow = high_flow
-                                        )
-    pickle.dump(param_set, open(param_file , 'wb'))
-    return param_set
-    pass
-
-
-def fit_merged_for_current_and_future():
-
-
-    the_types = [True, False]
-
-    high_start_month = 3
-    high_end_month = 7
-    high_duration = timedelta(days = 1)
-
-    low_start_month = 1
-    low_end_month = 4
-    low_duration = timedelta(days = 15)
-
-    type_to_period_start_month = {True : high_start_month, False : low_start_month}
-    type_to_period_end_month = {True : high_end_month, False : low_end_month}
-
-    type_to_event_duration = {True : high_duration, False : low_duration}
-
-
-    low_ret_periods = [2, 5, 10]
-    high_ret_periods = [10, 30, 50]
-
-    data_folder = 'data/streamflows/to_compare_with_Vincent'
-
-    current_start_date = datetime(1961,1,1,0,0)
-    current_end_date = datetime(1990,12, 31,0,0)
-
-    future_start_date = datetime(2041,1,1,0,0)
-    future_end_date = datetime(2070,12, 31,0,0)
-
-
-    for hig_flow in the_types:
-        pars_current = gev_fit_all_members(high_flow = hig_flow,
-                        member_ids = members.current_ids,
-                        data_folder = data_folder,
-                        file_name_pattern = '{0}_discharge_1961_01_01_00_00.nc',
-                        start_date = current_start_date,
-                        end_date = current_end_date,
-                        start_month = type_to_period_start_month[hig_flow] ,
-                        end_month = type_to_period_end_month[hig_flow],
-                        duration_days = type_to_event_duration[hig_flow])
-
-        pars_future = gev_fit_all_members(high_flow = hig_flow,
-                        member_ids = members.future_ids,
-                        data_folder = data_folder,
-                        file_name_pattern = '{0}_discharge_2041_01_01_00_00.nc',
-                        start_date = future_start_date,
-                        end_date = future_end_date,
-                        start_month = type_to_period_start_month[hig_flow] ,
-                        end_month = type_to_period_end_month[hig_flow],
-                        duration_days = type_to_event_duration[hig_flow])
-
-        
-
-        assert len(pars_current) == 547
-        assert len(pars_future) == 547
-        periods = high_ret_periods if hig_flow else low_ret_periods
-        for the_period in periods:
-            rl_current = []
-            rl_future = []
-            for par_current, par_future in zip(pars_current, pars_future):
-                if hig_flow:
-                    rl_current.append( get_high_ret_level_stationary(par_current, the_period) )
-                    rl_future.append( get_high_ret_level_stationary(par_future, the_period) )
-                else:
-                    rl_current.append( get_low_ret_level_stationary(par_current, the_period) )
-                    rl_future.append( get_low_ret_level_stationary(par_future, the_period) )
-
-
-            
-            rl_current = np.array(rl_current)
-            rl_future = np.array(rl_future)
-
-
-            assert np.max(rl_current) < 20000
-
-            
-            deltas = np.ma.masked_all(rl_current.shape)
-            indices = np.where((rl_current > 0) & (rl_future >= 0))
-            deltas[indices] = (rl_future[indices] - rl_current[indices]) / rl_current[indices] * 100.0
-
-            type_str = 'high' if hig_flow else 'low'
-            interval = np.ma.max(np.ma.abs(deltas))
-            interval = min(100, interval)
-
-            print 'current - {0}, period: {1}, minmax = {2}, {3}'.format(type_str, the_period, np.min(rl_current), np.max(rl_current))
-            print 'future - {0}, period: {1}, minmax = {2}, {3}'.format(type_str, the_period, np.min(rl_future), np.max(rl_future))
-
-            plot_data(deltas, imagefile = '{0}_{1}_change_fit_all.png'.format(type_str, the_period), units = '%', minmax = (-interval, interval),
-                            color_map = my_cm.get_diff_colormap(ncolors = 8),
-                            title = '{0}, {1} years, fit all members'.format(type_str, the_period))
-
-    pass
 
 
 def test_lm():
