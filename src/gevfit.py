@@ -317,19 +317,9 @@ def optimize_stationary_using_derivatives(extremes):
 #optimize using maxima over certain period
 #returns [sigma, mu, ksi, zero_fraction]
 def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = False):
+    """
 
-
-    the_min = np.min(extremes)
-    if (the_min < 100):
-        factor = 100.0 / the_min if the_min > 0 else 1.0
-    else:
-        factor = 1.0
-
-   
-
-    
-
-    
+    """
     indices = np.where(extremes > 0)
     zero_fraction = 1.0 - extremes[indices].shape[0] / float(len(extremes))
 
@@ -337,18 +327,10 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
     if zero_fraction >= 0.5:
         return [None, None, None, 1.0]
 
-    the_min = np.min(extremes[indices])
-    if (the_min < 100):
-        factor = 100.0 / the_min
-    else:
-        factor = 1.0
-
-    extremes = factor * extremes
 
 
     ##L-moments
     if use_lmoments:
-        #extremes /= 1.0e6
         pars = get_initial_params_using_lm(extremes[indices])
         pars.append(zero_fraction)
         lev = get_high_ret_level_stationary(pars, 10.0)
@@ -357,6 +339,15 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
             print extremes[indices].tolist()
             assert False, 'lev = {0}'.format(lev)
         return pars
+
+    #multiply by a factor in order to eliminate 0 and negative return levels
+    the_min = np.min(extremes[indices])
+    if the_min < 100:
+        factor = 100.0 / the_min
+    else:
+        factor = 1.0
+
+    extremes = factor * extremes
 
 
     if high_flow:
@@ -394,7 +385,7 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
 #                                                        )
 
 
-    if warnflag != 0:
+    if warnflag:
         print list(extremes)
         print warnflag
         print pars
@@ -434,6 +425,9 @@ def optimize_stationary_for_period_and_all_cells_using_data(
                 data = None,
                 high_flow = True):
 
+    """
+    optimization for data and whole domain
+    """
     pars_set = []
     #for all grid cells
     for pos in range(data.shape[1]):
@@ -558,12 +552,12 @@ def plot_high_flows(period = 10,
             print 'period = ', period
             print 'pars = ', pars
             assert False, 'in plot_high_flows'
-            
+
+        assert lev >= 0, pars
         levs.append( lev )
     
     to_plot = np.ma.masked_all(xs.shape)
     for lev, i, j in zip(levs, i_list, j_list):
-        assert lev >= 0, pars
         assert np.isfinite(lev)
         if isinf(lev):
             print lev
@@ -848,10 +842,10 @@ def stationary():
 
 
 def plot_directions(data_mask = None):
-    '''
+    """
         cells - 2D array of cells
         basins_mask - 1 where basins, 0 elsewhere
-    '''
+    """
 
     u_plot = np.ma.masked_all(xs.shape)
     v_plot = np.ma.masked_all(xs.shape)
