@@ -42,7 +42,7 @@ def gev_fit_all_members(high_flow = True, member_ids = [],
         the_path = path_pattern.format(id)
         streamflow, times, i_indices, j_indices = data_select.get_data_from_file(the_path)
 
-        if len(all_extremes) == 0:
+        if not len(all_extremes):
             for i in range(streamflow.shape[1]):
                 all_extremes.append([])
 
@@ -69,7 +69,7 @@ def gev_fit_all_members(high_flow = True, member_ids = [],
     #axes order: (time, position)
     all_extremes = np.array(all_extremes).transpose()
 
-    if np.any(all_extremes == None):
+    if np.any(all_extremes is None):
         assert False, 'all_extremes = ' + str(all_extremes)
 
     #optimize

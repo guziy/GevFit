@@ -33,6 +33,8 @@ basemap = polar_stereographic.basemap
 xs = polar_stereographic.xs
 ys = polar_stereographic.ys
 
+
+
 import save_to_file_rls_and_sign as txt_saver
 
 from matplotlib.colors import ListedColormap
@@ -78,7 +80,7 @@ def get_stdevs_for_member_and_type(member_id, level_type = 'high'):
     return pickle.load(open(file_name))
 
 def plot(data_1d, i_indices, j_indices, xs, ys,
-         title = '', minmax = (None, None),
+         title = '', label = "", minmax = (None, None),
          color_map = mpl.cm.get_cmap('RdBu'),
          units = '',
          colorbar_orientation = 'vertical' , basemap = None,
@@ -91,14 +93,14 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
     to_plot = np.ma.masked_all(xs.shape)
     sign_mask_2d = np.ma.masked_all(xs.shape)
 
-    if not_significant_mask != None:
+    if not_significant_mask is not None:
         the_zip = zip(i_indices, j_indices, data_1d, not_significant_mask)
         for i_index, j_index, the_data, significance in the_zip:
             to_plot[i_index, j_index] = the_data
             sign_mask_2d[i_index, j_index] = significance
         #plot not significant mask
         basemap.pcolormesh(xs, ys, sign_mask_2d.copy(), cmap = 'gray',
-                     shading = 'flat', vmin = 0, vmax = 1 )
+                     shading = 'flat', vmin = 0, vmax = 1, zorder = 2 )
     else:
         the_zip = zip(i_indices, j_indices, data_1d)
         for i_index, j_index, the_data in the_zip:
@@ -124,6 +126,14 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
 
     xmin, xmax = plt.xlim()
     plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
+
+    #draw a label
+    xmin, xmax = plt.xlim()
+    ymin, ymax = plt.ylim()
+    dx = xmax - xmin
+    dy = ymax - ymin
+    plt.annotate(label, xy = (xmax - 0.1 * dx, ymax - 0.1 * dy))
+
 
     #plot colorbar
     if show_colorbar:
@@ -154,17 +164,21 @@ def calculate_and_plot(return_period = 10,
 
     plt.clf()
 
-
+    save_to_txt = False
 
     folder_path = 'data/streamflows/hydrosheds_euler9/'
     i_indices, j_indices = data_select.get_indices_from_file(folder_path + 'aex_discharge_1970_01_01_00_00.nc')
     significance_counter = None
     plt.subplots_adjust(left = 0., hspace = 0.2, wspace = 0.2)
 
-
+    labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
 
     ##for querying high flow data for saving to text file
-    if level_type == 'high':
+    current_query = None
+    future_query = None
+    current_highs = None
+    future_highs = None
+    if level_type == 'high' and save_to_txt:
         high_period_start_month = 3
         high_period_end_month = 7
 
@@ -189,8 +203,12 @@ def calculate_and_plot(return_period = 10,
         current_query.end_month = high_period_end_month
 
 
+    current_id_to_changes = {}
+    all_changes = []
+    all_stds_current = []
+    all_stds_future = []
     for k, current_id in enumerate(members.current_ids):
-        if level_type == 'high':
+        if level_type == 'high' and save_to_txt:
             current_path = folder_path + '{0}_discharge_1970_01_01_00_00.nc'.format(current_id)
             future_path = folder_path + '{0}_discharge_2041_01_01_00_00.nc'.format(members.current2future[current_id])
             current_data, times_current, x_indices, y_indices = data_select.get_data_from_file(current_path)
@@ -217,7 +235,7 @@ def calculate_and_plot(return_period = 10,
 
 
         change = return_levels_future - return_levels_current
-        if significance_counter == None:
+        if significance_counter is None:
             significance_counter = np.zeros( change.shape )
 
 
@@ -245,13 +263,16 @@ def calculate_and_plot(return_period = 10,
 
         print len(sign_index[0])
 
+        all_changes.append(change)
+        all_stds_current.append(stdevs_current)
+        all_stds_future.append(stdevs_future)
+
         change[sign_index] /= return_levels_current[sign_index]
         change[sign_index] *= 100.0
 
         
         plt.subplot(3, 2, k + 1)
-        if np.max(change[sign_index]) > 100:
-            print np.max(change[sign_index])
+        if not level_type == "high":
             delta = 150
         else:
             delta = 50
@@ -267,47 +288,114 @@ def calculate_and_plot(return_period = 10,
             assert np.all(stdevs_future >= 0)
 
         #temp change to condition
-        change = np.ma.masked_where(np.logical_not(condition), change)
+        #change = np.ma.masked_where(np.logical_not(condition), change)
         print 'Plotting: current %s, future %s' % (current_id, future_id)
+
+        current_id_to_changes[current_id] = change
+
         plot(change , i_indices, j_indices, xs, ys,
-                    title = '%s - %s' % (future_id, current_id),
-                    color_map = mycolors.get_red_blue_colormap(ncolors = 16), units = '%',
+                    title = "", label = labels[k],
+                    color_map = mycolors.get_red_blue_colormap(ncolors = 20), units = '%',
                     basemap = basemap, minmax = (-delta, delta),
                     colorbar_label_format = '%d',
-                    upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 9),
-                    not_significant_mask = not_significant
+                    upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 11),
+                    not_significant_mask = None #not_significant
                     )
 
-        if return_period == 10 and level_type == 'high':
+        if return_period == 10 and level_type == 'high' and save_to_txt:
             txt_saver.save_to_file_rls_and_sign(current_id, return_period,
                                       return_levels_current, return_levels_future,
                                       stdevs_current, stdevs_future,
                                       condition, current_highs, future_highs)
     
-    return
-
 
 
 
         
     plt.subplot(3,2,6)
 
-    significance_counter = np.ma.masked_where(significance_counter == 0, significance_counter)
-    plot(significance_counter, i_indices, j_indices, xs, ys,
-         title = 'Significance Count', minmax = (1,6),
-         color_map = mycolors.get_sign_count_cmap(ncolors = 5), basemap = basemap,
-         colorbar_tick_locator = MaxNLocator(nbins = 5),
-         colorbar_label_format = '%d'
-         )
+    plot_sign_count = False
+    if plot_sign_count: #if plotting significance count
+        significance_counter = np.ma.masked_where(significance_counter == 0, significance_counter)
+        plot(significance_counter, i_indices, j_indices, xs, ys,
+             title = 'Significance Count', label = labels[5], minmax = (1,6),
+             color_map = mycolors.get_sign_count_cmap(ncolors = 5), basemap = basemap,
+             colorbar_tick_locator = MaxNLocator(nbins = 5),
+             colorbar_label_format = '%d'
+             )
+
+        #TODO plot +/-
+        plus_change = None
+        minus_change = None
+
+        for current_id, the_change in current_id_to_changes.iteritems():
+            if plus_change is None:
+                plus_change = (the_change > 0)
+                minus_change = (the_change < 0)
+            else:
+                plus_change = np.logical_and(the_change > 0, plus_change)
+                minus_change = np.logical_and(the_change < 0, minus_change)
+
+        #should be at least one member with significant changes
+        plus_change = np.logical_and(plus_change, significance_counter > 0)
+        minus_change = np.logical_and(minus_change, significance_counter > 0)
+
+        x_interest = xs[i_indices, j_indices]
+        y_interest = ys[i_indices, j_indices]
+
+
+        x_plus = x_interest[plus_change]
+        y_plus = y_interest[plus_change]
+        x_minus = x_interest[minus_change]
+        y_minus = y_interest[minus_change]
+
+        basemap.scatter(x_plus, y_plus, marker = "+", color = "m", s = 15, zorder = 5, linewidth = 1)
+
+        if len(x_minus) > 0:
+            basemap.scatter(x_minus, y_minus, marker = "d", zorder = 6)
+    else:
+        #plot ensemble mean
+        all_changes = np.array( all_changes )
+        all_stds_current = np.array( all_stds_current )
+        all_stds_future = np.array( all_stds_future )
+
+        mean_changes = np.mean(all_changes, axis=0)
+        mean_stds_current = np.mean( all_stds_current, axis = 0 )
+        mean_stds_future = np.mean( all_stds_future, axis = 0 )
+
+        if not level_type == "high":
+            delta = 150
+        else:
+            delta = 50
+
+        not_significant = np.absolute(mean_changes) <= 1.96 * (mean_stds_current + mean_stds_future)
+        not_significant = not_significant.astype(int)
+        not_significant = np.ma.masked_where(~(not_significant == 1), not_significant)
+        not_significant *= 0.5
+        print " sum(not_significant) = ", np.ma.sum(not_significant)
+
+        plot(mean_changes , i_indices, j_indices, xs, ys,
+                    title = "", label = labels[-1],
+                    color_map = mycolors.get_red_blue_colormap(ncolors = 20), units = '%',
+                    basemap = basemap, minmax = (-delta, delta),
+                    colorbar_label_format = '%d',
+                    upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 11),
+                    not_significant_mask = None#not_significant
+                    )
+
+
+
+        pass
+
     plt.savefig('%d_%s_change_rl.png' % (return_period, level_type), bbox_inches='tight')
 
 
 
 def get_column(index, lines, sep = ';'):
-    '''
+    """
     get column index from lines, where columns are separated
     with sep
-    '''
+    """
     selector = lambda x: x.split(sep)[index]
     sel1 = map(selector, lines)
     sel2 = map(float, sel1)
@@ -346,7 +434,7 @@ def plot_naveed_troubled_points(path = 'data/data_txt_naveed/TroubledGridCells_A
         data = get_column(c, lines)
         print data
         for i, j, v in zip(i_indices, j_indices, data):
-            if v != 0: #no color for 0
+            if v: #no color for 0
                 to_plot[i, j] = v
             else:
                 to_plot[i, j] = 3
@@ -378,9 +466,9 @@ def plot_naveed_troubled_points(path = 'data/data_txt_naveed/TroubledGridCells_A
     pass
 
 def plot_naveed_data(path = 'data/data_txt_naveed/3_all_for_plotting.csv'):
-    '''
+    """
     plotting data calculated by Naveed
-    '''
+    """
     f = open(path)
 
     lines = f.readlines()
@@ -480,17 +568,15 @@ def plot_naveed_data(path = 'data/data_txt_naveed/3_all_for_plotting.csv'):
 
 def main():
 
-    high_ret_periods = [10, 30, 50]
-    low_ret_periods = [2, 5, 10]
+    high_ret_periods = [10, 30]
+    low_ret_periods = [2, 5]
 
-    #temp for speed up
-    high_ret_periods.pop()
-    low_ret_periods.pop()
 
     for ret_period in high_ret_periods:
         calculate_and_plot(ret_period, gevfit.get_high_ret_level_stationary)
-    return
-         
+        return
+
+
 
     for ret_period in low_ret_periods:
         calculate_and_plot(ret_period, gevfit.get_low_ret_level_stationary)
@@ -502,6 +588,6 @@ def main():
 if __name__ == "__main__":
     #tmp
     #plot_naveed_data()
-    plot_naveed_troubled_points()
-    #main()
+    #plot_naveed_troubled_points()
+    main()
     print "Hello World"

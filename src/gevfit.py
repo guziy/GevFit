@@ -86,7 +86,7 @@ BIG_NUM = 1.0e6
 #np.seterr(all='raise', under='ignore')
 #sigma, mu, ksi, zero_fraction = pars
 def get_high_ret_level_stationary(pars, return_period):
-    if pars[0] == None:
+    if pars[0] is None:
         return -1
     sigma, mu, ksi, zero_fraction = pars
 
@@ -160,7 +160,7 @@ def plot_data(data = None, imagefile = 'image.png',
         to_plot[i, j] = value
 
     plt.title(title)
-    plt.pcolormesh(xs,ys,to_plot.copy(),  cmap = color_map, edgecolors = 'None',
+    m.pcolormesh(xs,ys,to_plot.copy(),  cmap = color_map, edgecolors = 'None',
                     antialiased = True, vmin = minmax[0], vmax = minmax[1])
     m.drawcoastlines()
     boundaries.plot_basin_boundaries_from_shape(m, plotter = plt, linewidth = 0.5)

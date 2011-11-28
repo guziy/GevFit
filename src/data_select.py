@@ -67,10 +67,10 @@ def get_period_minima(streamflows, times,
     for i, time in enumerate(times):
         time_plus_duration = time + event_duration
         #select by date
-        if start_date != None and time < start_date:
+        if start_date is not None and time < start_date:
             continue
 
-        if end_date != None and time_plus_duration > end_date:
+        if end_date is not None and time_plus_duration > end_date:
             break
 
         #select by month
@@ -120,10 +120,10 @@ def get_period_maxima(streamflows, times,
     for i, time in enumerate(times):
         time_plus_duration = time + event_duration
         #select by date
-        if start_date != None and time < start_date:
+        if start_date is not None and time < start_date:
             continue
 
-        if end_date != None and time_plus_duration > end_date:
+        if end_date is not None and time_plus_duration > end_date:
             break
 
         #select by month
@@ -152,10 +152,10 @@ def get_list_of_annual_maximums_for_domain(streamflows, times,
                       start_date = None, end_date = None,
                       start_month = 1,
                       end_month = 12, event_duration = timedelta(days = 1)):
-    '''
+    """
     returns annual maxima
     list (along posittions) of lists(along year) of maximum values
-    '''
+    """
     result = []
     for pos in range(streamflows.shape[1]):
         the_dict = get_period_maxima(streamflows[:, pos],
@@ -215,9 +215,9 @@ def get_maximums_for_domain(streamflows, times,
 
 
 def get_period_maxima_query(streamflows, times, queryObject):
-    '''
+    """
     returns maxima, list of lists of maximums for each point of the domain
-    '''
+    """
     # @type queryObject QueryObject
     return get_list_of_annual_maximums_for_domain(streamflows, times,
                 start_date = queryObject.start_date,
