@@ -24,7 +24,17 @@ application_properties.set_current_directory()
 def generate_indices(nvalues):
     return random.randint(0, nvalues, size = nvalues)
 
+def generate_indices_restrict_data_to_member(nvalues, nvalues_per_member):
+    result = []
+    min_index = 0
+    max_index = nvalues_per_member - 1
+    n_members = nvalues / nvalues_per_member
+    assert nvalues % nvalues_per_member == 0
+    for i in xrange(n_members):
+        result.extend(random.randint(min_index, high=max_index + 1, size=nvalues_per_member))
+    return result
 
+    pass
 
 #
 #return_periods - list of return periods
@@ -58,7 +68,9 @@ def function_for_each_process(args):
 def apply_bootstrap_to_extremes(all_extremes, n_samples = 10,
                                 out_file = "", process_pool = None,
                                 return_periods = None, high_flow = True,
-                                positions = None):
+                                positions = None, restrict_indices_to_member = False,
+                                n_values_per_member = -1
+                                ):
 
     """
     calculate standard deviations using the bootstrap method
@@ -74,7 +86,10 @@ def apply_bootstrap_to_extremes(all_extremes, n_samples = 10,
     #prepare input data
     input = []
     for i in range(n_samples):
-        sampled_indices = generate_indices(all_extremes.shape[0])
+        if not restrict_indices_to_member:
+            sampled_indices = generate_indices(all_extremes.shape[0])
+        else:
+            sampled_indices = generate_indices_restrict_data_to_member(all_extremes.shape[0], )
         print "sampled indices: ", sampled_indices
         #input parameters
         input.append((i, sampled_indices, all_extremes,

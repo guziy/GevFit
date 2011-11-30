@@ -48,11 +48,12 @@ def apply_bootstrap_to_all_members_merged(file_paths = None,
 
     #select data
     all_extremes = []
+    streamflow = None
     for the_path in file_paths:
         print the_path
         streamflow, times, i_indices, j_indices = data_select.get_data_from_file(the_path)
 
-        if len(all_extremes) == 0:
+        if not len(all_extremes):
             all_extremes = [[] for i in xrange(streamflow.shape[1])]
 
         for pos in xrange(streamflow.shape[1]):
@@ -82,8 +83,11 @@ def apply_bootstrap_to_all_members_merged(file_paths = None,
                                         process_pool = process_pool,
                                         return_periods = return_periods,
                                         positions = xrange(streamflow.shape[1]),
-                                        high_flow = high_flow
+                                        high_flow = high_flow,
+                                        restrict_indices_to_member=True,
+                                        n_values_per_member= all_extremes.shape[0] / len(file_paths)
                                         )
+    print "n_indices per member = ", all_extremes.shape[0] / len(file_paths)
     pass
 
 
@@ -209,8 +213,12 @@ def plot_results():
     }
 
 
-    sig_coefs = [1.96, 1.645]
-    sig_levels = ["95 %", "90 %"]
+    sig_coefs = [1.96
+    #    , 1.645
+    ]
+    sig_levels = ["95 %"
+    #    , "90 %"
+    ]
 
     for extreme in extreme_types:
         pars_path_current = base_par_name[cc].format(extreme)
@@ -229,7 +237,7 @@ def plot_results():
 
         plt.figure()
         subplot_count = 1
-        delta = 50 if extreme == hi else 150
+        delta = 50 if extreme == hi else 100
         for ret_period in return_periods:
             #calculate changes in return levels
             func = lambda x: gevfit.get_high_ret_level_stationary(x, ret_period)
@@ -250,29 +258,29 @@ def plot_results():
             for sig_coef, sig_name in zip(sig_coefs, sig_levels):
                 significance = np.ma.masked_all(rl_c.shape)
                 sig_cond = (sig_coef * (std_c + std_f) < np.abs(rl_f - rl_c)) & in_odf
-                significance[~sig_cond] = 0.75 #fill with grey non signifcant areas
+                significance[~sig_cond] = 0.75 #fill with gray non signifcant areas
                 change1 = np.ma.masked_where(~sig_cond, change)
                 plt.subplot(3,2, subplot_count)
                 csfb.plot(change1 , i_indices, j_indices, xs, ys,
                         title = 'T = %d year, conf. (%s)' % (ret_period, sig_name),
-                        color_map = mycolors.get_red_blue_colormap(ncolors = 16),
+                        color_map = mycolors.get_red_blue_colormap(ncolors = 10),
                         units = '%',
                         basemap = basemap, minmax = (-delta, delta),
                         colorbar_label_format = '%d',
                         upper_limited = True,
-                        colorbar_tick_locator = LinearLocator(numticks = 9),
+                        colorbar_tick_locator = LinearLocator(numticks = 11),
                         not_significant_mask = significance,
                         show_colorbar = True
                         )
                 subplot_count += 1
-        plt.savefig("{0}_merged_change.pdf".format(extreme), bbox_inches = "tight")
+        plt.savefig("{0}_merged_change.png".format(extreme), bbox_inches = "tight")
 
     pass
 
 if __name__ == "__main__":
     application_properties.set_current_directory()
 
-    calculate = False
+    calculate = True
     if calculate:
         main(n_samples = 1000)
     else:

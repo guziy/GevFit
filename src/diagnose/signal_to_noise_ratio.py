@@ -1,5 +1,6 @@
 from matplotlib.font_manager import FontProperties
 import application_properties
+import plot_utils
 
 __author__="huziy"
 __date__ ="$Aug 8, 2011 10:39:54 PM$"
@@ -13,6 +14,9 @@ import data_select
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable   #for aligning colorbar with map plot
+
 
 import pylab
 import shape.basin_boundaries as basin_boundaries
@@ -115,22 +119,27 @@ def _plot_map_as_subplots(i_indices, j_indices, extremetype_retperiod_cv_map, ti
 
             plt.subplot(2,2, i_subplot)
             i_subplot += 1
-            cMap = mpl.cm.get_cmap('jet', 7)
+            cMap = mpl.cm.get_cmap('jet', 3)
             cMap.set_over(color = '0.5')
 
             basin_boundaries.plot_basin_boundaries_from_shape(csfb.basemap, plotter = plt, linewidth = 1.6)
-            csfb.basemap.pcolormesh(csfb.xs, csfb.ys, to_plot, vmin = 0, vmax = max_value, cmap = cMap)
+
+            image = csfb.basemap.pcolormesh(csfb.xs, csfb.ys, to_plot, vmin = 0, vmax = 1.5, cmap = cMap)
+            plot_axes = plt.gca()
+            divider = make_axes_locatable(plot_axes)
+            cax = divider.append_axes("right", "8%", pad="3%")
+
+
             # extend choices are "both", "min", "max" and "neither"
-            plt.colorbar(extend = 'max', ticks = LinearLocator(numticks = 8), format = "%.2f")
+            cb = plt.colorbar(image, extend = 'max', ticks = LinearLocator(numticks = 4),
+                              format = "%.2f", drawedges = True, cax = cax)
+            cb.outline.set_visible(False)
             csfb.basemap.drawcoastlines(linewidth = 0.2)
 
             plt.title('Return period: {0} years,\n {1} flow event.'.format(ret_period, extreme_type))
-            ymin, ymax = plt.ylim()
-            plt.ylim(ymin + 0.05 * (ymax - ymin) , ymax * 0.25)
-
-            xmin, xmax = plt.xlim()
-            plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
-
+            x_min, x_max, y_min, y_max = plot_utils.get_ranges(csfb.xs[i_indices, j_indices], csfb.ys[i_indices, j_indices])
+            plt.xlim(x_min, x_max)
+            plt.ylim(y_min, y_max)
 
 def plot_signal_to_noise_ratio():
     low_periods = [2, 5]
@@ -144,6 +153,9 @@ def plot_signal_to_noise_ratio():
     i_subplot = 1
 
     plt.subplots_adjust(hspace = 0.4, wspace = 0.000)
+    cMap = mpl.cm.get_cmap('jet', 3)
+    cMap.set_over(color = '0.5')
+
     for extreme_type in extreme_types:
         for return_period in extreme_type_to_periods[extreme_type]:
 
@@ -184,7 +196,7 @@ def plot_signal_to_noise_ratio():
             #the_values = the_mean
             to_plot = np.ma.masked_all(csfb.xs.shape)
 
-            max_value = 0.5
+            max_value = 1.5
             for i, j, value, dev in zip(i_indices, j_indices, the_values, the_std):
                 to_plot[i, j] = value
 
@@ -193,34 +205,46 @@ def plot_signal_to_noise_ratio():
             #to_plot = np.ma.masked_where(to_plot == 0, to_plot)
             print np.any(to_plot == 0)
 
-            plt.subplot(2,2, i_subplot)
+            plot_axes = plt.subplot(2,2, i_subplot)
             i_subplot += 1
             print 'just before plotting'
-            cMap = mpl.cm.get_cmap('jet', 7)
-            cMap.set_over(color = '0.5')
 
             
             basin_boundaries.plot_basin_boundaries_from_shape(csfb.basemap, plotter = plt, linewidth = 1.6)
-            csfb.basemap.pcolormesh(csfb.xs, csfb.ys, to_plot, vmin = 0, vmax = max_value, cmap = cMap)
-            # extend choices are "both", "min", "max" and "neither"
-            plt.colorbar(extend = 'max', ticks = LinearLocator(numticks = 8), format = "%.2f")
+            image = csfb.basemap.pcolormesh(csfb.xs, csfb.ys, to_plot, vmin = 0, vmax = max_value, cmap = cMap,
+                                            ax = plot_axes)
             csfb.basemap.drawcoastlines(linewidth = 0.2)
-            plt.title('Return period: {0} years,\n {1} flow event.'.format(return_period, extreme_type))
-            ymin, ymax = plt.ylim()
-            plt.ylim(ymin + 0.05 * (ymax - ymin) , ymax * 0.25)
 
-            xmin, xmax = plt.xlim()
-            plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
+            plot_axes.set_title('T = {0}-year'.format(return_period))
+            x_min, x_max, y_min, y_max = plot_utils.get_ranges(csfb.xs[i_indices, j_indices], csfb.ys[i_indices, j_indices])
+            plot_axes.set_xlim(x_min, x_max)
+            plot_axes.set_ylim(y_min, y_max)
+
+
+
+
+            divider = make_axes_locatable(plot_axes)
+            cax = divider.append_axes("right", "8%", pad="3%")
+
+
+            # extend choices are "both", "min", "max" and "neither"
+            cb = plt.colorbar(image, extend = 'max',
+                              format = "%.1f", drawedges = True, cax = cax)
+
+            cb.set_ticks(LinearLocator(numticks = 4))
+            cb.outline.set_visible(False)
+
+
 
 
     #plt.show()
 
-    plt.savefig('cv_for_changes.pdf', bbox_inches='tight')
+    plt.savefig('cv_for_changes.png', bbox_inches='tight')
  
 
 
 if __name__ == "__main__":
     application_properties.set_current_directory()
-    plot_cv_for_return_levels_current_and_future_and_change()
-    #plot_signal_to_noise_ratio()
+    #plot_cv_for_return_levels_current_and_future_and_change()
+    plot_signal_to_noise_ratio()
     print "Hello World"

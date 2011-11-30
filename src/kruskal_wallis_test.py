@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+import itertools
 import pylab
 
 __author__ = 'huziy'
@@ -99,9 +100,9 @@ def kw_test(data):
     p_values = np.zeros((n_pos,))
 
     for pos in xrange(n_pos):
-        samples = (
+        samples = [
             data2d[:, pos] for data2d in data
-        )
+        ]
         h, p_values[pos] = kruskalwallis(*samples)
 
     return p_values
@@ -124,6 +125,7 @@ def get_key_data_list():
 
     hi = "high"
     lo = "low"
+
     the_types = [hi, lo]
 
     high_start_month = 3
@@ -181,23 +183,95 @@ def get_key_data_list():
     return key_data_list
 
 
+def kw_test_for_means(current_climate = True, data_folder = 'data/streamflows/hydrosheds_euler9', months = range(1,13)):
+    """
+    returns p-values resulting from kruskal - wallis test on annual means
+    """
+
+    the_ids = members.all_current if current_climate else members.all_future
+
+    file_paths = []
+    for the_file in os.listdir(data_folder):
+        if the_file.split("_")[0] in the_ids:
+            file_paths.append(os.path.join(data_folder, the_file))
+
+    real_means = []
+    for the_path in file_paths:
+        streamflow, times, i_indices, j_indices = data_select.get_data_from_file(the_path)
+
+        #for each year and for each gridcell get mean value for the period
+        means_dict = data_select.get_means_over_months_for_each_year(times, streamflow, months = months)
+
+        means_sorted_in_time = map( lambda x : x[1], sorted(means_dict.items(), key=lambda x: x[0]) )
+        data_matrix = np.array(means_sorted_in_time)
+        real_means.append(data_matrix) #save modelled means
+        #print "data_matrix.shape = ", data_matrix.shape
+
+    n_positions = real_means[0].shape[1]
+    p_values = np.zeros((n_positions,))
+    for pos in xrange(n_positions):
+        samples = [
+            data2d[:, pos] for data2d in real_means
+        ]
+
+        #x = list(samples)
+        #print len(x), x[0].shape
+
+
+        h, p_values[pos] = kruskalwallis(*samples)
+    return p_values
+
+    pass
+
+
 
 def main():
     apply_plot_params()
     key_data_list = get_key_data_list()
     i_list, j_list = data_select.get_indices_from_file()
     subplot_count = 1
-    for data in key_data_list:
-        plt.subplot(2,2, subplot_count)
-        csfb.plot(data.p_values, i_list, j_list,
-                  polar_stereographic.xs, polar_stereographic.ys,
-                  units = "", basemap = polar_stereographic.basemap,
-                  minmax = (0, 0.2), title = "{0} climate, {1} flow".format(data.time_window, data.type),
-                  colorbar_label_format="%.2f", color_map = mpl.cm.get_cmap("jet", 5), upper_limited=True
-        )
-        subplot_count += 1
 
-    plt.savefig("p_values_kruskalwallis.pdf", bbox_inches = "tight")
+    for the_type in ["high", "low"]:
+        for time_window in ["current", "future"]:
+            selected_data = None
+
+            for data in key_data_list:
+                if data.time_window == time_window and data.type == the_type:
+                    selected_data = data
+                    break
+
+            plt.subplot(3,2, subplot_count)
+            csfb.plot(selected_data.p_values, i_list, j_list,
+                      polar_stereographic.xs, polar_stereographic.ys,
+                      units = "", basemap = polar_stereographic.basemap,
+                      minmax = (0, 0.2), title = "", # "{0} climate, {1} flow".format(selected_data.time_window, selected_data.type),
+                      colorbar_label_format="%.2f", color_map = mpl.cm.get_cmap("jet", 5), upper_limited=True
+            )
+            subplot_count += 1
+
+    #TODO:add 2 subplots for mean values
+    pc = kw_test_for_means()
+    plt.subplot(3,2, subplot_count)
+    csfb.plot(pc, i_list, j_list,
+              polar_stereographic.xs, polar_stereographic.ys,
+              units = "", basemap = polar_stereographic.basemap,
+              minmax = (0, 0.2), #title = "{0} climate, {1} flow".format("current", "mean"),
+              colorbar_label_format="%.2f", color_map = mpl.cm.get_cmap("jet", 5), upper_limited=True
+    )
+    subplot_count += 1
+
+    pf = kw_test_for_means(current_climate=False)
+    plt.subplot(3,2, subplot_count)
+    csfb.plot(pf, i_list, j_list,
+              polar_stereographic.xs, polar_stereographic.ys,
+              units = "", basemap = polar_stereographic.basemap,
+              minmax = (0, 0.2), #title = "{0} climate, {1} flow".format("future", "mean"),
+              colorbar_label_format="%.2f", color_map = mpl.cm.get_cmap("jet", 5), upper_limited=True
+    )
+
+
+
+    plt.savefig("p_values_kruskalwallis.png", bbox_inches = "tight")
 
 def test():
     application_properties.set_current_directory()

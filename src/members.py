@@ -13,7 +13,7 @@ control_id = 'aex'
 
 all_current = []
 all_current.extend(current_ids)
-all_current.append(control_id)
+#all_current.append(control_id)
 
 
 all_future = []

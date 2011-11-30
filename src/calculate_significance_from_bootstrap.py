@@ -99,8 +99,8 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
             to_plot[i_index, j_index] = the_data
             sign_mask_2d[i_index, j_index] = significance
         #plot not significant mask
-        basemap.pcolormesh(xs, ys, sign_mask_2d.copy(), cmap = 'gray',
-                     shading = 'flat', vmin = 0, vmax = 1, zorder = 2 )
+        basemap.pcolormesh(xs, ys, sign_mask_2d.copy(), cmap = mpl.cm.get_cmap('gist_gray', 3),
+                     shading = 'flat', vmin = -1, vmax = 1, zorder = 2 )
     else:
         the_zip = zip(i_indices, j_indices, data_1d)
         for i_index, j_index, the_data in the_zip:
@@ -109,8 +109,8 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
 
 
 
-
-    basemap.pcolormesh(xs, ys, to_plot.copy(), cmap = color_map,
+    plot_axes = plt.gca()
+    image = basemap.pcolormesh(xs, ys, to_plot.copy(), cmap = color_map,
                     vmin = minmax[0], vmax = minmax[1], shading = 'flat', rasterized = False )
 
 
@@ -121,11 +121,9 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
 
 
 
-    ymin, ymax = plt.ylim()
-    plt.ylim(ymin + 0.05 * (ymax - ymin) , ymax * 0.25)
-
-    xmin, xmax = plt.xlim()
-    plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
+    x_min, x_max, y_min, y_max = plot_utils.get_ranges(xs[i_indices, j_indices], ys[i_indices, j_indices])
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
 
     #draw a label
     xmin, xmax = plt.xlim()
@@ -137,13 +135,19 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
 
     #plot colorbar
     if show_colorbar:
-        cb = plt.colorbar(ticks = colorbar_tick_locator,
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        divider = make_axes_locatable(plot_axes)
+        cax = divider.append_axes("right", "8%", pad="3%")
+
+        cb = plt.colorbar(image, ticks = colorbar_tick_locator,
                           orientation = colorbar_orientation,
-                          format = colorbar_label_format
+                          format = colorbar_label_format, drawedges = True,
+                          cax=cax
                           )
 
+        cb.outline.set_visible(False)
+        cb.ax.set_title(units)
 
-        cb.ax.set_xlabel(units)
         if upper_limited:
             cl = cb.ax.get_yticklabels()
             labels = []
@@ -204,7 +208,8 @@ def calculate_and_plot(return_period = 10,
 
 
     current_id_to_changes = {}
-    all_changes = []
+    all_current = []
+    all_future = []
     all_stds_current = []
     all_stds_future = []
     for k, current_id in enumerate(members.current_ids):
@@ -263,7 +268,9 @@ def calculate_and_plot(return_period = 10,
 
         print len(sign_index[0])
 
-        all_changes.append(change)
+        all_current.append(return_levels_current)
+        all_future.append(return_levels_future)
+
         all_stds_current.append(stdevs_current)
         all_stds_future.append(stdevs_future)
 
@@ -272,8 +279,8 @@ def calculate_and_plot(return_period = 10,
 
         
         plt.subplot(3, 2, k + 1)
-        if not level_type == "high":
-            delta = 150
+        if not (level_type == "high"):
+            delta = 100
         else:
             delta = 50
 
@@ -355,32 +362,36 @@ def calculate_and_plot(return_period = 10,
             basemap.scatter(x_minus, y_minus, marker = "d", zorder = 6)
     else:
         #plot ensemble mean
-        all_changes = np.array( all_changes )
+        all_current = np.array( all_current )
+        all_future = np.array( all_future )
         all_stds_current = np.array( all_stds_current )
         all_stds_future = np.array( all_stds_future )
 
-        mean_changes = np.mean(all_changes, axis=0)
+
+        mean_current = np.mean(all_current, axis = 0)
+        mean_future = np.mean(all_future, axis = 0)
         mean_stds_current = np.mean( all_stds_current, axis = 0 )
         mean_stds_future = np.mean( all_stds_future, axis = 0 )
 
         if not level_type == "high":
-            delta = 150
+            delta = 100
         else:
             delta = 50
 
-        not_significant = np.absolute(mean_changes) <= 1.96 * (mean_stds_current + mean_stds_future)
+        not_significant = np.absolute(mean_future - mean_current) <= 1.96 * (mean_stds_current + mean_stds_future)
         not_significant = not_significant.astype(int)
+        print " sum(not_significant) = ", np.sum(not_significant)
         not_significant = np.ma.masked_where(~(not_significant == 1), not_significant)
-        not_significant *= 0.5
-        print " sum(not_significant) = ", np.ma.sum(not_significant)
+        not_significant *= 0.0
 
-        plot(mean_changes , i_indices, j_indices, xs, ys,
+
+        plot((mean_future - mean_current) / mean_current * 100.0, i_indices, j_indices, xs, ys,
                     title = "", label = labels[-1],
                     color_map = mycolors.get_red_blue_colormap(ncolors = 20), units = '%',
                     basemap = basemap, minmax = (-delta, delta),
                     colorbar_label_format = '%d',
                     upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 11),
-                    not_significant_mask = None#not_significant
+                    not_significant_mask = not_significant
                     )
 
 
@@ -574,9 +585,6 @@ def main():
 
     for ret_period in high_ret_periods:
         calculate_and_plot(ret_period, gevfit.get_high_ret_level_stationary)
-        return
-
-
 
     for ret_period in low_ret_periods:
         calculate_and_plot(ret_period, gevfit.get_low_ret_level_stationary)

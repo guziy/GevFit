@@ -35,11 +35,11 @@ class MapParameters():
     def init_map(self):
         """initializes longitudes and latitudes of grid"""
         self.lons, self.lats = self.get_longitudes_and_latitudes( self.n_cols, self.n_rows)
-#        m = Basemap(projection = 'npstere',
-#                        lat_ts = 60, lat_0 = 60, lon_0 = -115, boundinglat = 40, resolution='i')
-
         m = Basemap(projection = 'npstere',
-                        lat_ts = 60, lat_0 = 60, lon_0 = -90, boundinglat = 40, resolution='i')
+                       lat_ts = 60, lat_0 = 60, lon_0 = -115, boundinglat = 40, resolution='i')
+
+#        m = Basemap(projection = 'npstere',
+#                        lat_ts = 60, lat_0 = 60, lon_0 = -90, boundinglat = 40, resolution='i')
         xs, ys = m(self.lons, self.lats)
         return xs, ys, m
 

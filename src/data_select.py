@@ -312,6 +312,23 @@ def test_select():
     print means[1980]
     print means[1972].shape
 
+def get_means_over_months_for_each_year(times, streamflow, months = range(1,13)):
+    """
+    for calculating seasonal and annual means
+    returns the dictionary {year: array_of_means_for_all_points_for_year}
+    """
+    start_year = times[0].year
+    end_year = times[-1].year
+
+    result = {}
+    for the_year in xrange(start_year, end_year + 1):
+        select_vector = map( lambda t: t.month in months and t.year == the_year, times )
+        indices = np.where(select_vector)[0]
+        result[the_year] = np.mean(streamflow[indices, :], axis=0)
+    return result
+
+
+
 if __name__ == "__main__":
     test_select()
     print "Hello World"
