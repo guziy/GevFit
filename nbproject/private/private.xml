@@ -2,4 +2,20 @@
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
     <coverage xmlns="http://www.netbeans.org/ns/code-coverage/1" enabled="false"/>
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/1"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/1">
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/diagnose/signal_to_noise_ratio.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/gevfit.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/save_to_file_rls_and_sign.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/data_select.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/bootstrap.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/data/__init__.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/data/query_object.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/test_median.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/diagnose/compare_changes_in_median_and_2yr_rl.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/plot_utils.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/data/cehq_measure_data/104001_Q.txt</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/demo/demo_pyngl.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/calculate_significance_from_bootstrap.py</file>
+        <file>file:/skynet3_rech1/huziy/Netbeans%20Projects/Python/GevFit/src/bootstrap_all_members_merged.py</file>
+    </open-files>
 </project-private>

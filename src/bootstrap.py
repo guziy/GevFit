@@ -32,6 +32,8 @@ def generate_indices_restrict_data_to_member(nvalues, nvalues_per_member):
     assert nvalues % nvalues_per_member == 0
     for i in xrange(n_members):
         result.extend(random.randint(min_index, high=max_index + 1, size=nvalues_per_member))
+        min_index += nvalues_per_member
+        max_index += nvalues_per_member
     return result
 
     pass
@@ -89,7 +91,7 @@ def apply_bootstrap_to_extremes(all_extremes, n_samples = 10,
         if not restrict_indices_to_member:
             sampled_indices = generate_indices(all_extremes.shape[0])
         else:
-            sampled_indices = generate_indices_restrict_data_to_member(all_extremes.shape[0], )
+            sampled_indices = generate_indices_restrict_data_to_member(all_extremes.shape[0], n_values_per_member)
         print "sampled indices: ", sampled_indices
         #input parameters
         input.append((i, sampled_indices, all_extremes,
@@ -114,26 +116,20 @@ def apply_bootstrap_to_extremes(all_extremes, n_samples = 10,
     #calculate standard deviations
     for the_period in return_periods:
         sampled_ret_levels = np.array(all_return_levels[the_period])
-        all_std_devs[the_period] = - np.ones((len(positions),))
+        #all_std_devs[the_period] = - np.ones((len(positions),))
 
 
         #do not calculate the dispersion for the cases where some samples give
         #negative return levels (this is for the low flow return levels, high
         #flow return levels should always be positive)
 
-        print 'sampled_ret_levels.shape = ', sampled_ret_levels.shape
+        if not np.all(sampled_ret_levels >= 0):
+            print "warning some resampled return levels were negative, assigning zeros"
+            print "return period is %d " % the_period
+            sampled_ret_levels[sampled_ret_levels < 0] = 0.0
 
+        all_std_devs[the_period] = np.std(sampled_ret_levels, axis = 0)
 
-        for j in positions:
-            #if any of the RL for the given point is
-            #negative => do not calculate statistics for the cell
-            if np.all(sampled_ret_levels[:,j] >= 0):
-                all_std_devs[the_period][j] = np.std(sampled_ret_levels[:, j])
-            else:
-                print 'period = ', the_period
-                print 'some resampled return levels are negative'
-                print sampled_ret_levels[:, j]
-                all_std_devs[the_period][j] = -1
         print np.array(all_return_levels[the_period]).shape
 
     #sanity checks

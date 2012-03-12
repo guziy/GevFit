@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 import itertools
 import pylab
+import plot_utils
 
 __author__ = 'huziy'
 
@@ -18,29 +19,6 @@ from map_parameters import polar_stereographic
 import application_properties
 import pickle
 
-
-def apply_plot_params(font_size = 16):
-    """
-
-    """
-    inches_per_pt = 1.0 / 72.27               # Convert pt to inch
-    golden_mean = (np.sqrt(5) - 1.0) / 2.0       # Aesthetic ratio
-    fig_width = 900 * inches_per_pt          # width in inches
-    fig_height = fig_width * golden_mean      # height in inches
-    fig_size = [fig_width, 1.5 * fig_height]
-
-
-    params = {
-            'axes.labelsize': font_size,
-            'font.size':font_size,
-            'text.fontsize': font_size,
-            'legend.fontsize': font_size,
-            'xtick.labelsize': font_size,
-            'ytick.labelsize': font_size,
-            'figure.figsize': fig_size
-            }
-
-    pylab.rcParams.update(params)
 
 
 
@@ -226,10 +204,11 @@ def kw_test_for_means(current_climate = True, data_folder = 'data/streamflows/hy
 
 
 def main():
-    apply_plot_params()
+    plot_utils.apply_plot_params(width_pt=None, font_size=9, aspect_ratio=2.5)
+    gs = mpl.gridspec.GridSpec(3,2)
     key_data_list = get_key_data_list()
     i_list, j_list = data_select.get_indices_from_file()
-    subplot_count = 1
+    subplot_count = 0
 
     for the_type in ["high", "low"]:
         for time_window in ["current", "future"]:
@@ -240,38 +219,39 @@ def main():
                     selected_data = data
                     break
 
-            plt.subplot(3,2, subplot_count)
+            row = subplot_count // 2
+            col = subplot_count % 2
+            plt.subplot(gs[row, col])
             csfb.plot(selected_data.p_values, i_list, j_list,
                       polar_stereographic.xs, polar_stereographic.ys,
                       units = "", basemap = polar_stereographic.basemap,
-                      minmax = (0, 0.2), title = "", # "{0} climate, {1} flow".format(selected_data.time_window, selected_data.type),
+                      minmax = (0, 0.25), title = "", # "{0} climate, {1} flow".format(selected_data.time_window, selected_data.type),
                       colorbar_label_format="%.2f", color_map = mpl.cm.get_cmap("jet", 5), upper_limited=True
             )
             subplot_count += 1
 
     #TODO:add 2 subplots for mean values
     pc = kw_test_for_means()
-    plt.subplot(3,2, subplot_count)
+    plt.subplot(gs[2,0])
     csfb.plot(pc, i_list, j_list,
               polar_stereographic.xs, polar_stereographic.ys,
               units = "", basemap = polar_stereographic.basemap,
-              minmax = (0, 0.2), #title = "{0} climate, {1} flow".format("current", "mean"),
+              minmax = (0, 0.25), #title = "{0} climate, {1} flow".format("current", "mean"),
               colorbar_label_format="%.2f", color_map = mpl.cm.get_cmap("jet", 5), upper_limited=True
     )
-    subplot_count += 1
 
     pf = kw_test_for_means(current_climate=False)
-    plt.subplot(3,2, subplot_count)
+    plt.subplot(gs[2, 1])
     csfb.plot(pf, i_list, j_list,
               polar_stereographic.xs, polar_stereographic.ys,
               units = "", basemap = polar_stereographic.basemap,
-              minmax = (0, 0.2), #title = "{0} climate, {1} flow".format("future", "mean"),
+              minmax = (0, 0.25), #title = "{0} climate, {1} flow".format("future", "mean"),
               colorbar_label_format="%.2f", color_map = mpl.cm.get_cmap("jet", 5), upper_limited=True
     )
 
 
-
-    plt.savefig("p_values_kruskalwallis.png", bbox_inches = "tight")
+    plt.tight_layout()
+    plt.savefig("p_values_kruskalwallis.png")
 
 def test():
     application_properties.set_current_directory()

@@ -1,5 +1,5 @@
 __author__="huziy"
-__date__ ="$7 déc. 2010 10:59:26$"
+__date__ ="$7 dec. 2010 10:59:26$"
 
 import pickle
 

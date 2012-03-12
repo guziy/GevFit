@@ -1,3 +1,6 @@
+from matplotlib import gridspec
+import plot_utils
+
 __author__="huziy"
 __date__ ="$Sep 17, 2011 6:44:52 PM$"
 
@@ -143,8 +146,8 @@ def main( n_samples = 10 ):
 
 
     #process pool
-    n_processes = int(n_samples ** 0.6) if n_samples > 100 else n_samples
-    process_pool = Pool(processes = n_processes)
+    #n_processes = int(n_samples ** 0.6) if n_samples > 100 else n_samples
+    process_pool = Pool(processes = 20)
 
     for extreme in extreme_types:
         start_month = type_to_period_start_month[extreme]
@@ -219,6 +222,7 @@ def plot_results():
     sig_levels = ["95 %"
     #    , "90 %"
     ]
+    gs = gridspec.GridSpec(3,2)
 
     for extreme in extreme_types:
         pars_path_current = base_par_name[cc].format(extreme)
@@ -234,11 +238,12 @@ def plot_results():
         stds_future = pickle.load(open(std_path_future))
 
         return_periods = extreme_to_return_periods[extreme]
+        #plot_utils.apply_plot_params(font_size=15, width_pt=900, aspect_ratio=2.5)
+        #plt.figure()
 
-        plt.figure()
-        subplot_count = 1
+
         delta = 50 if extreme == hi else 100
-        for ret_period in return_periods:
+        for row, ret_period in enumerate( return_periods ):
             #calculate changes in return levels
             func = lambda x: gevfit.get_high_ret_level_stationary(x, ret_period)
             rl_c = map(func, pars_current)
@@ -255,14 +260,29 @@ def plot_results():
             change[in_odf] = (rl_f[in_odf] - rl_c[in_odf]) / rl_c[in_odf] * 100.0
 
 
+            min_change = np.min((rl_f - rl_c) / rl_c * 100.0)
+            if min_change >= 0:
+               low_limit = 0
+            elif min_change > -10:
+               low_limit = -10
+            else:
+                low_limit = np.floor(min_change / 10.0) * 10
+
+            print "min change = {0}, low limit = {1}".format(min_change, low_limit)
+
+
             for sig_coef, sig_name in zip(sig_coefs, sig_levels):
                 significance = np.ma.masked_all(rl_c.shape)
                 sig_cond = (sig_coef * (std_c + std_f) < np.abs(rl_f - rl_c)) & in_odf
-                significance[~sig_cond] = 0.75 #fill with gray non signifcant areas
+                significance[~sig_cond] = 0#fill with gray non signifcant areas
                 change1 = np.ma.masked_where(~sig_cond, change)
-                plt.subplot(3,2, subplot_count)
+                if extreme == hi:
+                    plt.subplot(gs[row, 0])
+                else:
+                    plt.subplot(gs[row, 1])
+
                 csfb.plot(change1 , i_indices, j_indices, xs, ys,
-                        title = 'T = %d year, conf. (%s)' % (ret_period, sig_name),
+                        title = 'T = {0}-year'.format( ret_period ),
                         color_map = mycolors.get_red_blue_colormap(ncolors = 10),
                         units = '%',
                         basemap = basemap, minmax = (-delta, delta),
@@ -270,17 +290,18 @@ def plot_results():
                         upper_limited = True,
                         colorbar_tick_locator = LinearLocator(numticks = 11),
                         not_significant_mask = significance,
-                        show_colorbar = True
+                        show_colorbar = True, impose_lower_limit=low_limit
                         )
-                subplot_count += 1
-        plt.savefig("{0}_merged_change.png".format(extreme), bbox_inches = "tight")
+                #subplot_count += 1
+    plt.tight_layout()
+    plt.savefig("rl_of_merged_change.png")
 
     pass
 
 if __name__ == "__main__":
     application_properties.set_current_directory()
-
-    calculate = True
+    plot_utils.apply_plot_params(width_pt=None, font_size=9)
+    calculate = False
     if calculate:
         main(n_samples = 1000)
     else:

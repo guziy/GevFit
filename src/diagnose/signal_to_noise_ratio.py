@@ -14,33 +14,13 @@ import data_select
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
+from matplotlib import gridspec
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable   #for aligning colorbar with map plot
 
 
 import pylab
 import shape.basin_boundaries as basin_boundaries
-def apply_plot_params():
-    inches_per_pt = 1.0 / 72.27               # Convert pt to inch
-    golden_mean = (np.sqrt(5.0) - 1.0) / 2.0       # Aesthetic ratio
-    fig_width = 800 * inches_per_pt          # width in inches
-    fig_height = fig_width * golden_mean      # height in inches
-    fig_size = [fig_width,  1.5 * fig_height]
-
-    font_size = 16
-
-    params = {
-        'axes.labelsize': font_size,
-        'font.size':font_size,
-        'text.fontsize': font_size,
-        'legend.fontsize': font_size,
-        'xtick.labelsize': font_size,
-        'ytick.labelsize': font_size,
-        'figure.figsize': fig_size
-    }
-
-    pylab.rcParams.update(params)
-
 
 
 def plot_cv_for_return_levels_current_and_future_and_change():
@@ -87,7 +67,6 @@ def plot_cv_for_return_levels_current_and_future_and_change():
 
 
     #do plotting
-    apply_plot_params()
     _plot_map_as_subplots(i_indices, j_indices, current_cvs, title = " Current Climate, CV ")
     plt.savefig('cv_for_return_levels_current.png')
     _plot_map_as_subplots(i_indices, j_indices, future_cvs, title = "Future Climate, CV")
@@ -102,7 +81,7 @@ def plot_cv_for_return_levels_current_and_future_and_change():
 def _plot_map_as_subplots(i_indices, j_indices, extremetype_retperiod_cv_map, title = ""):
     plt.figure()
     i_subplot = 1
-    plt.subplots_adjust(hspace = 0.4, wspace = 0.000)
+    plt.subplots_adjust(hspace = 0.2, wspace = 0.2)
     #TODO: plot CV for the current and future climates
 
     plt.figtext(0.5, 0.05, title, horizontalalignment='center')
@@ -120,7 +99,7 @@ def _plot_map_as_subplots(i_indices, j_indices, extremetype_retperiod_cv_map, ti
             plt.subplot(2,2, i_subplot)
             i_subplot += 1
             cMap = mpl.cm.get_cmap('jet', 3)
-            cMap.set_over(color = '0.5')
+            cMap.set_over(color = '#FF8C00')
 
             basin_boundaries.plot_basin_boundaries_from_shape(csfb.basemap, plotter = plt, linewidth = 1.6)
 
@@ -144,17 +123,19 @@ def _plot_map_as_subplots(i_indices, j_indices, extremetype_retperiod_cv_map, ti
 def plot_signal_to_noise_ratio():
     low_periods = [2, 5]
     high_periods = [10, 30]
-    apply_plot_params()
+    plot_utils.apply_plot_params(width_pt=None, font_size=9, aspect_ratio=2.5)
 
     extreme_types = ['high', 'low']
     extreme_type_to_periods = dict(zip(extreme_types, [high_periods, low_periods]))
 
     i_indices, j_indices = data_select.get_indices_from_file()
-    i_subplot = 1
+    i_subplot = 0
 
-    plt.subplots_adjust(hspace = 0.4, wspace = 0.000)
+    #plt.subplots_adjust(wspace = 0.1)
     cMap = mpl.cm.get_cmap('jet', 3)
-    cMap.set_over(color = '0.5')
+    cMap.set_over(color = '#FF8C00')
+
+    gs = gridspec.GridSpec(3,2)
 
     for extreme_type in extreme_types:
         for return_period in extreme_type_to_periods[extreme_type]:
@@ -182,16 +163,9 @@ def plot_signal_to_noise_ratio():
             #calculate mean and stdev of the obtained changes
             the_mean = np.mean(changes, axis = 0)
             the_std = np.std(changes, axis = 0)
-            print extreme_type
-            print 'std = ', the_std.min(), the_std.max()
-            print 'mean = ', the_mean.min(), the_mean.max()
-            print 20 * '--'
-
-            the_values = np.zeros(the_mean.shape)
-            delta = 0
 
             #change if you want signal to noise ratio, currently it is cv (coefficient of variation 1/(signal-to-noise-ratio))
-            the_values[the_std > delta] = the_std[the_std > delta] / np.abs(the_mean[the_std > delta])
+            the_values = the_std / np.abs(the_mean)
             print the_values.min(), the_values.max()
             #the_values = the_mean
             to_plot = np.ma.masked_all(csfb.xs.shape)
@@ -203,14 +177,14 @@ def plot_signal_to_noise_ratio():
 
             #shaded = np.ma.masked_where(to_plot != 0, shaded)
             #to_plot = np.ma.masked_where(to_plot == 0, to_plot)
-            print np.any(to_plot == 0)
 
-            plot_axes = plt.subplot(2,2, i_subplot)
+
+            plot_axes = plt.subplot(gs[i_subplot // 2, i_subplot % 2])
             i_subplot += 1
             print 'just before plotting'
 
             
-            basin_boundaries.plot_basin_boundaries_from_shape(csfb.basemap, plotter = plt, linewidth = 1.6)
+            basin_boundaries.plot_basin_boundaries_from_shape(csfb.basemap, plotter = plt, linewidth = 1.)
             image = csfb.basemap.pcolormesh(csfb.xs, csfb.ys, to_plot, vmin = 0, vmax = max_value, cmap = cMap,
                                             ax = plot_axes)
             csfb.basemap.drawcoastlines(linewidth = 0.2)
@@ -236,10 +210,9 @@ def plot_signal_to_noise_ratio():
 
 
 
-
     #plt.show()
-
-    plt.savefig('cv_for_changes.png', bbox_inches='tight')
+    plt.tight_layout()
+    plt.savefig('cv_for_changes.png')
  
 
 

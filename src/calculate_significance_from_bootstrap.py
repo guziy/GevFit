@@ -1,3 +1,5 @@
+from matplotlib.font_manager import FontProperties
+
 __author__="huziy"
 __date__ ="$3 fevr. 2011 09:35:44$"
 
@@ -16,6 +18,7 @@ import matplotlib as mpl
 from matplotlib.ticker import LinearLocator, MaxNLocator
 
 import plot_utils
+from matplotlib import gridspec
 
 from math import sqrt
 import pylab
@@ -39,26 +42,6 @@ import save_to_file_rls_and_sign as txt_saver
 
 from matplotlib.colors import ListedColormap
 
-
-inches_per_pt = 1.0 / 72.27               # Convert pt to inch
-golden_mean = (sqrt(5) - 1.0) / 2.0       # Aesthetic ratio
-fig_width = 900 * inches_per_pt          # width in inches
-fig_height = fig_width * golden_mean      # height in inches
-fig_size = [fig_width, 2.5 * fig_height]
-
-font_size = 13
-
-params = {
-        'axes.labelsize': font_size,
-        'font.size':font_size,
-        'text.fontsize': font_size,
-        'legend.fontsize': font_size,
-        'xtick.labelsize': font_size,
-        'ytick.labelsize': font_size,
-        'figure.figsize': fig_size
-        }
-
-pylab.rcParams.update(params)
 
 
 ret_level_getters = [
@@ -86,21 +69,22 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
          colorbar_orientation = 'vertical' , basemap = None,
          colorbar_tick_locator = LinearLocator(numticks = 6),
          colorbar_label_format = '%.1f', upper_limited = False,
-         not_significant_mask = None, show_colorbar = True):
+         not_significant_mask = None, show_colorbar = True, impose_lower_limit = None):
 
 
-    plt.title(title, {'fontsize': font_size})
+
     to_plot = np.ma.masked_all(xs.shape)
     sign_mask_2d = np.ma.masked_all(xs.shape)
 
     if not_significant_mask is not None:
-        the_zip = zip(i_indices, j_indices, data_1d, not_significant_mask)
+        data_1d_masked = np.ma.masked_where(~not_significant_mask.mask, data_1d)
+        the_zip = zip(i_indices, j_indices, data_1d_masked, not_significant_mask)
         for i_index, j_index, the_data, significance in the_zip:
             to_plot[i_index, j_index] = the_data
             sign_mask_2d[i_index, j_index] = significance
         #plot not significant mask
         basemap.pcolormesh(xs, ys, sign_mask_2d.copy(), cmap = mpl.cm.get_cmap('gist_gray', 3),
-                     shading = 'flat', vmin = -1, vmax = 1, zorder = 2 )
+                     shading = 'flat', vmin = -1, vmax = 1 )
     else:
         the_zip = zip(i_indices, j_indices, data_1d)
         for i_index, j_index, the_data in the_zip:
@@ -116,8 +100,8 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
 
     plot_basin_boundaries_from_shape(basemap, plotter = plt, linewidth = 1, edge_color = 'k')
     basemap.drawcoastlines(linewidth = 0.5)
-    
-    plot_utils.draw_meridians_and_parallels(basemap, step_degrees = 30)
+
+    #plot_utils.draw_meridians_and_parallels(basemap, step_degrees = 30)
 
 
 
@@ -126,12 +110,16 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
     plt.ylim(y_min, y_max)
 
     #draw a label
-    xmin, xmax = plt.xlim()
-    ymin, ymax = plt.ylim()
-    dx = xmax - xmin
-    dy = ymax - ymin
-    plt.annotate(label, xy = (xmax - 0.1 * dx, ymax - 0.1 * dy))
+    #xmin, xmax = plt.xlim()
+    #ymin, ymax = plt.ylim()
+    # dx = xmax - xmin
+    #dy = ymax - ymin
+    #plt.annotate(label, xy = (xmax - 0.1 * dx, ymax - 0.1 * dy), font_properties = FontProperties(size = 25))
 
+    if title == "":
+        plot_axes.set_title(label)
+    else:
+        plot_axes.set_title(title)
 
     #plot colorbar
     if show_colorbar:
@@ -139,12 +127,25 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
         divider = make_axes_locatable(plot_axes)
         cax = divider.append_axes("right", "8%", pad="3%")
 
-        cb = plt.colorbar(image, ticks = colorbar_tick_locator,
+        cb = plt.colorbar(image, #ticks = colorbar_tick_locator,
                           orientation = colorbar_orientation,
                           format = colorbar_label_format, drawedges = True,
                           cax=cax
                           )
+        cb.set_ticks(colorbar_tick_locator)
+        if impose_lower_limit is None:
+            min_val = min( data_1d.min(), 0)
+        else:
+            min_val = impose_lower_limit
 
+        lower_limit = (min_val - minmax[0]) / float(minmax[1] - minmax[0])
+
+        if lower_limit < 0:
+            lower_limit = 0.0
+        else:
+            lower_limit = plot_utils.get_closest_tick_value(color_map.N + 1, lower_limit)
+
+        cb.ax.set_ylim(bottom = lower_limit - 1.0e-4)
         cb.outline.set_visible(False)
         cb.ax.set_title(units)
 
@@ -158,22 +159,29 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
             cb.ax.set_yticklabels(labels)
 
 
+
+
+
 def calculate_and_plot(return_period = 10,
                        return_level_function = ret_level_getters[0]):
+
 
     if return_level_function == gevfit.get_high_ret_level_stationary:
         level_type = 'high'
     else:
         level_type = 'low'
 
-    plt.clf()
+    plt.figure()
 
     save_to_txt = False
 
     folder_path = 'data/streamflows/hydrosheds_euler9/'
     i_indices, j_indices = data_select.get_indices_from_file(folder_path + 'aex_discharge_1970_01_01_00_00.nc')
     significance_counter = None
-    plt.subplots_adjust(left = 0., hspace = 0.2, wspace = 0.2)
+    #plt.subplots_adjust(left = 0., hspace = 0.2, wspace = 0.2)
+
+
+
 
     labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
 
@@ -207,6 +215,7 @@ def calculate_and_plot(return_period = 10,
         current_query.end_month = high_period_end_month
 
 
+    gs = gridspec.GridSpec(3,2)
     current_id_to_changes = {}
     all_current = []
     all_future = []
@@ -274,18 +283,22 @@ def calculate_and_plot(return_period = 10,
         all_stds_current.append(stdevs_current)
         all_stds_future.append(stdevs_future)
 
-        change[sign_index] /= return_levels_current[sign_index]
-        change[sign_index] *= 100.0
+        change /= return_levels_current
+        change *= 100.0
 
+
+        min_change = np.min(change)
+        print return_levels_current[change == min_change], return_levels_future[change == min_change], min_change
         
-        plt.subplot(3, 2, k + 1)
-        if not (level_type == "high"):
+        if not level_type == "high":
             delta = 100
+            lower_limit = 0 if min_change >= 0 else -20
         else:
             delta = 50
+            lower_limit = -30
 
 
-        not_significant = np.ones(change.shape) * 0.75
+        not_significant = np.zeros(change.shape)
         not_significant = np.ma.masked_where(condition, not_significant)
 
 
@@ -299,7 +312,7 @@ def calculate_and_plot(return_period = 10,
         print 'Plotting: current %s, future %s' % (current_id, future_id)
 
         current_id_to_changes[current_id] = change
-
+        plt.subplot(gs[k // 2, k % 2])
         plot(change , i_indices, j_indices, xs, ys,
                     title = "", label = labels[k],
                     color_map = mycolors.get_red_blue_colormap(ncolors = 20), units = '%',
@@ -307,6 +320,8 @@ def calculate_and_plot(return_period = 10,
                     colorbar_label_format = '%d',
                     upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 11),
                     not_significant_mask = None #not_significant
+                    , impose_lower_limit=lower_limit
+
                     )
 
         if return_period == 10 and level_type == 'high' and save_to_txt:
@@ -319,9 +334,10 @@ def calculate_and_plot(return_period = 10,
 
 
         
-    plt.subplot(3,2,6)
+    plt.subplot(gs[2,1])
 
     plot_sign_count = False
+    plot_significance = True
     if plot_sign_count: #if plotting significance count
         significance_counter = np.ma.masked_where(significance_counter == 0, significance_counter)
         plot(significance_counter, i_indices, j_indices, xs, ys,
@@ -375,8 +391,10 @@ def calculate_and_plot(return_period = 10,
 
         if not level_type == "high":
             delta = 100
+            lower_limit = 0 if np.min(mean_future - mean_current) >= 0 else -20
         else:
             delta = 50
+            lower_limit = -30
 
         not_significant = np.absolute(mean_future - mean_current) <= 1.96 * (mean_stds_current + mean_stds_future)
         not_significant = not_significant.astype(int)
@@ -384,6 +402,8 @@ def calculate_and_plot(return_period = 10,
         not_significant = np.ma.masked_where(~(not_significant == 1), not_significant)
         not_significant *= 0.0
 
+        if not plot_significance:
+            not_significant = None
 
         plot((mean_future - mean_current) / mean_current * 100.0, i_indices, j_indices, xs, ys,
                     title = "", label = labels[-1],
@@ -391,14 +411,16 @@ def calculate_and_plot(return_period = 10,
                     basemap = basemap, minmax = (-delta, delta),
                     colorbar_label_format = '%d',
                     upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 11),
-                    not_significant_mask = not_significant
+                    not_significant_mask = not_significant,
+                    impose_lower_limit = lower_limit
                     )
 
 
 
         pass
 
-    plt.savefig('%d_%s_change_rl.png' % (return_period, level_type), bbox_inches='tight')
+    plt.tight_layout()
+    plt.savefig('%d_%s_change_rl.png' % (return_period, level_type))
 
 
 
@@ -438,7 +460,7 @@ def plot_naveed_troubled_points(path = 'data/data_txt_naveed/TroubledGridCells_A
 
 
     color_map = ListedColormap(['r','b', 'g'])
-    plt.subplots_adjust(hspace = 0.0001)
+    #plt.subplots_adjust(hspace = 0.0001)
     for c, name in zip(cols, names):
         plt.subplot(2,2,c)
         to_plot = np.ma.masked_all(xs.shape)
@@ -582,6 +604,8 @@ def main():
     high_ret_periods = [10, 30]
     low_ret_periods = [2, 5]
 
+    #plot_utils.apply_plot_params(font_size=15, width_pt=900, aspect_ratio=2.5)
+    plot_utils.apply_plot_params(width_pt=None, font_size=9, aspect_ratio=2.5)
 
     for ret_period in high_ret_periods:
         calculate_and_plot(ret_period, gevfit.get_high_ret_level_stationary)
