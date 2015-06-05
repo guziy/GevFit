@@ -78,4 +78,4 @@ def apply_plot_params(font_size = 20, width_pt = 1000, aspect_ratio = 1):
 
 
 if __name__ == "__main__":
-    print "Hello World"
+    print("Hello World")

@@ -6,16 +6,16 @@ import netCDF4 as nc
 import sys
 
 import application_properties
-import demo_netcdf4_2
+from . import demo_netcdf4_2
 
 def test():
 
     demo_netcdf4_2.print_version()
     path = 'data/streamflows/output_2d/data1/aex_discharge_1961_01_01_00_00.nc'
     fpin = Dataset(path)
-    print fpin.variables.keys()
+    print(list(fpin.variables.keys()))
     x = fpin.variables['time'][:]
-    print x.shape
+    print(x.shape)
     fpin.close()
     
     sys.stdout.write('netcdf4-python version: %s\n'%nc.__version__)
@@ -26,4 +26,4 @@ def test():
 if __name__ == "__main__":
     application_properties.set_current_directory()
     test()
-    print "Hello World"
+    print("Hello World")

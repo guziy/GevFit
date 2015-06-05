@@ -126,13 +126,13 @@ def main():
     plt.subplot(1,2,2)
     pvalues = np.zeros((median_changes.shape[0],))
 
-    for i in xrange(len(pvalues)):
+    for i in range(len(pvalues)):
         t, pvalues[i] = ttest_1samp( np.array(test_median_current.data_extremes[i]) -
                                      np.array(test_median_future.data_extremes[i]), 0)
 
 
     # @type test_median_current Test_median
-    print len(pvalues), test_median_current.longitudes.shape
+    print(len(pvalues), test_median_current.longitudes.shape)
 
     b = Basemap(resolution = 'i')
     i_indices, j_indices = test_median_current.get_indices_in_2d_grid()
@@ -153,4 +153,4 @@ def main():
 if __name__ == "__main__":
     application_properties.set_current_directory()
     main()
-    print "Hello World"
+    print("Hello World")

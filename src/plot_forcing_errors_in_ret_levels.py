@@ -46,9 +46,9 @@ def calculate_forcing_differences(return_period = 10,
     for level_field in level_fields:
         diff += (level_field - control_field) # / control_field * 100
 
-    print np.min(diff), np.max(diff)
+    print(np.min(diff), np.max(diff))
 
-    print 'min(control_field): ', np.min(control_field)
+    print('min(control_field): ', np.min(control_field))
     return diff / float( len(level_fields) )
 
 
@@ -74,4 +74,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    print "Hello World"
+    print("Hello World")

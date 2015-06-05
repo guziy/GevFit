@@ -30,7 +30,7 @@ def generate_indices_restrict_data_to_member(nvalues, nvalues_per_member):
     max_index = nvalues_per_member - 1
     n_members = nvalues / nvalues_per_member
     assert nvalues % nvalues_per_member == 0
-    for i in xrange(n_members):
+    for i in range(n_members):
         result.extend(random.randint(min_index, high=max_index + 1, size=nvalues_per_member))
         min_index += nvalues_per_member
         max_index += nvalues_per_member
@@ -44,7 +44,7 @@ def function_for_each_process(args):
     sample_index, sampled_indices, extremes, \
     return_periods, high_flow, positions = args
 
-    print 'I work on sample %d' % sample_index
+    print('I work on sample %d' % sample_index)
     
     result = {}
     for the_period in return_periods:
@@ -82,7 +82,7 @@ def apply_bootstrap_to_extremes(all_extremes, n_samples = 10,
     """
 
     if os.path.isfile(out_file):
-        print "{0} already exists, skipping ".format(out_file)
+        print("{0} already exists, skipping ".format(out_file))
         return
 
     #prepare input data
@@ -124,13 +124,13 @@ def apply_bootstrap_to_extremes(all_extremes, n_samples = 10,
         #flow return levels should always be positive)
 
         if not np.all(sampled_ret_levels >= 0):
-            print "warning some resampled return levels were negative, assigning zeros"
-            print "return period is %d " % the_period
+            print("warning some resampled return levels were negative, assigning zeros")
+            print("return period is %d " % the_period)
             sampled_ret_levels[sampled_ret_levels < 0] = 0.0
 
         all_std_devs[the_period] = np.std(sampled_ret_levels, axis = 0)
 
-        print np.array(all_return_levels[the_period]).shape
+        print(np.array(all_return_levels[the_period]).shape)
 
     #sanity checks
     if high_flow:
@@ -183,12 +183,12 @@ def apply_bootstrap_to_data(streamflow = None, times = None,
                             end_month = period_end_month,
                             event_duration = event_duration_days
                             )
-        all_extremes[pos].extend(data.values())
+        all_extremes[pos].extend(list(data.values()))
 
 
     all_extremes = np.array(all_extremes).transpose()
-    print 'all_extremes.shape = ', all_extremes.shape
-    print 'n_samples = ', n_samples
+    print('all_extremes.shape = ', all_extremes.shape)
+    print('n_samples = ', n_samples)
 
     apply_bootstrap_to_extremes(all_extremes, n_samples = n_samples,
                                 out_file = out_file,
@@ -223,7 +223,7 @@ def apply_bootstrap(data_path = '',
 
     out_file = member_name + '_' + prefix + '_std_dev'
     if os.path.isfile(out_file):
-        print '%s exists already ' % out_file
+        print('%s exists already ' % out_file)
         return
 
 
@@ -251,10 +251,10 @@ def plot(member = 'aex', low_return_periods = [], high_return_periods = []):
     for extreme in ['high', 'low']:
         data_path = member + '_' + extreme + '_std_dev'
         if not os.path.isfile(data_path):
-            print 'Warning: no data for (%s, %s) ' % (member, extreme)
+            print('Warning: no data for (%s, %s) ' % (member, extreme))
             continue
         if not os.path.isfile(data_path):
-            print 'Warning can\'t find file %s for plotting' % data_path
+            print('Warning can\'t find file %s for plotting' % data_path)
             continue
 
         if extreme == 'high':
@@ -368,8 +368,8 @@ def main(n_samples = 20):
 
 if __name__ == "__main__":
     t0 = time.time()
-    print os.getcwd()
+    print(os.getcwd())
     main(n_samples = 1000)
     t1 = time.time()
-    print 'Execution time is %f seconds ' % (t1 - t0)
-    print "Hello World"
+    print('Execution time is %f seconds ' % (t1 - t0))
+    print("Hello World")

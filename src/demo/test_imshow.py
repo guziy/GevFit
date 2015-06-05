@@ -17,7 +17,7 @@ def test():
 
 
     alpha =  np.where(to_plot.mask, 0, 1)
-    print alpha
+    print(alpha)
 
     plt.pcolormesh(to_plot, cmap =  mpl.cm.get_cmap('Reds', 10), alpha = None)
     #plt.imshow(to_plot, interpolation = 'hanning', cmap =  mpl.cm.get_cmap('Reds', 10), alpha = alpha)
@@ -27,4 +27,4 @@ def test():
 
 if __name__ == "__main__":
     test()
-    print "Hello World"
+    print("Hello World")

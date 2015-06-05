@@ -199,9 +199,9 @@ def main():
             test_median.return_period_years = the_period
             test_median.high_flow = True
             test_median.event_duration = type_to_duration[the_type]
-            print 'selecting data and calculating'
+            print('selecting data and calculating')
 
-            print 'path={0}, the_type = {1}, the_period = {2}'.format(path, the_type, the_period)
+            print('path={0}, the_type = {1}, the_period = {2}'.format(path, the_type, the_period))
             test_median.select_data_and_calculate()
             #plot
             test_median.plot()
@@ -220,9 +220,9 @@ def main():
             test_median.return_period_years = the_period
             test_median.high_flow = False
             test_median.event_duration = type_to_duration[the_type]
-            print 'selecting data and calculating'
+            print('selecting data and calculating')
 
-            print 'path={0}, the_type = {1}, the_period = {2}'.format(path, the_type, the_period)
+            print('path={0}, the_type = {1}, the_period = {2}'.format(path, the_type, the_period))
             test_median.select_data_and_calculate()
 
 

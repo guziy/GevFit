@@ -17,9 +17,9 @@ def save_to_file_rls_and_sign(current_id, return_period,
     footer = 'significant: {0}\n\n'
     line_format = '{0},{1}\n'
 
-    print len(current_highs)
+    print(len(current_highs))
     npos = len(current_highs)
-    for pos in xrange(npos):
+    for pos in range(npos):
 #        f.write(header)
 
         the_highs = []
@@ -27,7 +27,7 @@ def save_to_file_rls_and_sign(current_id, return_period,
         the_highs.extend(future_highs[pos])
 
 
-        the_highs = map(lambda x: '%.2f' % x, the_highs)
+        the_highs = ['%.2f' % x for x in the_highs]
         f.write(';'.join(the_highs) + '\n')
 
 #        for current, future in zip(current_highs[pos], future_highs[pos]):
@@ -41,4 +41,4 @@ def save_to_file_rls_and_sign(current_id, return_period,
 
 
 if __name__ == "__main__":
-    print "Hello World"
+    print("Hello World")

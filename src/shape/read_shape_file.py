@@ -46,4 +46,4 @@ def get_features_from_shape(basemap, path = 'data/shape/contour_bv_MRCC/Bassins_
     
 
 if __name__ == "__main__":
-    print "Hello World"
+    print("Hello World")

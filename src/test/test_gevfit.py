@@ -56,7 +56,7 @@ class  GevfitTest():
 
 
             ##save to the object's fields
-            print the_type
+            print(the_type)
             assert len(gml) == len(lm), 'Not None: gml = %d, lm = %d' % (len(gml), len(lm))
             self.gml_parameters[the_type] = np.array(gml)
             self.lm_parameters[the_type] = np.array(lm)
@@ -147,9 +147,9 @@ class  GevfitTest():
             ps_gml.append(gev_cdf(x, sigma_gml, mu_gml, ksi_gml))
 
 
-        print 'LM: ', sigma_lm, mu_lm, ksi_lm
-        print 'GML: ', sigma_gml, mu_gml, ksi_gml
-        print ps_lm
+        print('LM: ', sigma_lm, mu_lm, ksi_lm)
+        print('GML: ', sigma_gml, mu_gml, ksi_gml)
+        print(ps_lm)
         plt.title(r'$\sigma = %.2f , \mu = %.2f , \xi = %.2f$' % (sigma0, mu0, ksi0))
         plt.plot(xs, ps_0, linewidth = 2, label = 'Theory')
         plt.plot(xs, ps_lm, linewidth = 2, label = 'LM')

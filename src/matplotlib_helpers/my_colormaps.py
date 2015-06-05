@@ -276,4 +276,4 @@ def test():
     plt.show()
 if __name__ == "__main__":
     test()
-    print "Hello World"
+    print("Hello World")

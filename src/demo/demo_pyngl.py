@@ -8,4 +8,4 @@ __date__ ="$Sep 5, 2011 3:03:05 PM$"
 import Ngl
 
 if __name__ == "__main__":
-    print "Hello World"
+    print("Hello World")

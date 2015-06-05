@@ -2,7 +2,7 @@ __author__="huziy"
 __date__ ="$20 dec. 2010 19:59:26$"
 
 
-from read_shape_file import *
+from .read_shape_file import *
 def plot_basin_boundaries_from_shape(basemap, plotter = None, linewidth = 2, edge_color = 'k', ax = None):
     if ax is None:
         ax = plotter.gca()
@@ -22,4 +22,4 @@ def plot_patches(plotter, the_patches):
 
 
 if __name__ == "__main__":
-    print "Hello World"
+    print("Hello World")

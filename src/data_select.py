@@ -18,14 +18,14 @@ def get_field_from_file(path = '', field_name = ''):
 
 def get_data_from_file(path):
     date_format = '%Y_%m_%d_%H_%M'
-    print path
+    print(path)
     fpin = Dataset(path)
         
     
     times = fpin.variables['time'][:]
     #dims: time, cell_index
     discharge = fpin.variables['water_discharge'][:,:]
-    print 'discharge.shape = ', discharge.shape
+    print('discharge.shape = ', discharge.shape)
     x_indices = fpin.variables['x-index'][:]
     y_indices = fpin.variables['y-index'][:]
     
@@ -87,12 +87,12 @@ def get_period_minima(streamflows, times,
 
 
         if not np.isfinite(value):
-            print streamflows
+            print(streamflows)
         assert np.isfinite(value)
 
 
         the_year = time.year
-        if result.has_key(the_year):
+        if the_year in result:
             if result[the_year] > value:
                 result[the_year] = value
         else:
@@ -138,7 +138,7 @@ def get_period_maxima(streamflows, times,
         assert np.isfinite(value)
 
         the_year = time.year
-        if result.has_key(the_year):
+        if the_year in result:
             if result[the_year] < value:
                 result[the_year] = value
         else:
@@ -166,7 +166,7 @@ def get_list_of_annual_maximums_for_domain(streamflows, times,
                                             start_month, end_month,
                                             event_duration = event_duration)
         
-        result.append(the_dict.values())
+        result.append(list(the_dict.values()))
     return result
 
 
@@ -187,7 +187,7 @@ def get_list_of_annual_minimums_for_domain(streamflows, times,
                                             end_date,
                                             start_month, end_month,
                                             event_duration = event_duration)
-        result.append(the_dict.values())
+        result.append(list(the_dict.values()))
     return result
 
 
@@ -210,7 +210,7 @@ def get_maximums_for_domain(streamflows, times,
                                             end_date,
                                             start_month, end_month,
                                             event_duration = duration_days)
-        the_maxima[pos] =  np.max(the_dict.values())
+        the_maxima[pos] =  np.max(list(the_dict.values()))
 
     return the_maxima
 
@@ -246,7 +246,7 @@ def get_minimums_for_domain(streamflows, times,
                                             end_date,
                                             start_month, end_month,
                                             event_duration = duration_days)
-        result[pos] =  np.min(the_dict.values())
+        result[pos] =  np.min(list(the_dict.values()))
     return result
 
 
@@ -266,7 +266,7 @@ def get_annual_means(streamflows, times, start_date = None, end_date = None):
             continue
 
         the_year = time.year
-        if not result.has_key(the_year):
+        if the_year not in result:
             result[the_year] = np.zeros(streamflows.shape[1])
             counts[the_year] = 0
             
@@ -275,7 +275,7 @@ def get_annual_means(streamflows, times, start_date = None, end_date = None):
 
 
 
-    for the_year in result.keys():
+    for the_year in list(result.keys()):
         result[the_year] /= float( counts[the_year] )
 
     return result
@@ -289,7 +289,7 @@ def test_select():
     streamflow, times, xs, ys = get_data_from_file(data_file)
 
     
-    print streamflow.shape
+    print(streamflow.shape)
 
     #test maxima selection
     maxs = get_period_maxima(streamflow[:, 10], times, start_date = datetime(1970,1,1,0,0,0),
@@ -297,23 +297,23 @@ def test_select():
                                                        start_month = 4,
                      end_month = 6, event_duration = timedelta(days = 1))
 
-    print maxs
+    print(maxs)
 
     #test minima selection
     maxs = get_period_minima(streamflow[:, 10], times, start_date = datetime(1970,1,1,0,0,0),
                             end_date = datetime(1999,12,31,0,0,0), start_month = 3,
                             end_month = 4, event_duration = timedelta(days = 15))
-    print maxs
+    print(maxs)
 
     #test get means
     means = get_annual_means(streamflow, times, start_date = datetime(1970,1,1,0,0,0), 
                                                  end_date = datetime(1999,12, 31,0,0,0))
 
-    print len(means)
-    print means[1980]
-    print means[1972].shape
+    print(len(means))
+    print(means[1980])
+    print(means[1972].shape)
 
-def get_means_over_months_for_each_year(times, streamflow, months = range(1,13)):
+def get_means_over_months_for_each_year(times, streamflow, months = list(range(1,13))):
     """
     for calculating seasonal and annual means
     returns the dictionary {year: array_of_means_for_all_points_for_year}
@@ -322,8 +322,8 @@ def get_means_over_months_for_each_year(times, streamflow, months = range(1,13))
     end_year = times[-1].year
 
     result = {}
-    for the_year in xrange(start_year, end_year + 1):
-        select_vector = map( lambda t: t.month in months and t.year == the_year, times )
+    for the_year in range(start_year, end_year + 1):
+        select_vector = [t.month in months and t.year == the_year for t in times]
         indices = np.where(select_vector)[0]
         result[the_year] = np.mean(streamflow[indices, :], axis=0)
     return result
@@ -332,4 +332,4 @@ def get_means_over_months_for_each_year(times, streamflow, months = range(1,13))
 
 if __name__ == "__main__":
     test_select()
-    print "Hello World"
+    print("Hello World")

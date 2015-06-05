@@ -7,7 +7,7 @@ __date__ ="$20 dec. 2010 12:03:42$"
 current_ids = [ 'aet', 'aev', 'aey', 'aez', 'afa']
 future_ids =  [ 'aeu', 'aew','afb', 'afc' , 'afd']
 
-current2future = dict(zip(current_ids, future_ids))
+current2future = dict(list(zip(current_ids, future_ids)))
 
 control_id = 'aex'
 
@@ -36,4 +36,4 @@ all_members.extend(future_ids)
 
 
 if __name__ == "__main__":
-    print "Hello World"
+    print("Hello World")

@@ -84,7 +84,7 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
 
     if not_significant_mask is not None:
         data_1d_masked = np.ma.masked_where(~not_significant_mask.mask, data_1d)
-        the_zip = zip(i_indices, j_indices, data_1d_masked, not_significant_mask)
+        the_zip = list(zip(i_indices, j_indices, data_1d_masked, not_significant_mask))
         for i_index, j_index, the_data, significance in the_zip:
             to_plot[i_index, j_index] = the_data
             sign_mask_2d[i_index, j_index] = significance
@@ -92,7 +92,7 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
         basemap.pcolormesh(xs, ys, sign_mask_2d.copy(), cmap = mpl.cm.get_cmap('gist_gray', 3),
                      shading = 'flat', vmin = -1, vmax = 1, ax = ax )
     else:
-        the_zip = zip(i_indices, j_indices, data_1d)
+        the_zip = list(zip(i_indices, j_indices, data_1d))
         for i_index, j_index, the_data in the_zip:
             to_plot[i_index, j_index] = the_data
 
@@ -187,7 +187,7 @@ def calculate_and_plot(return_period = 10,
     save_to_txt = False
     current_ids = ["ccsm-crcm-current"] #members.current_ids
     future_ids = ["ccsm-crcm-future"] #members.future_ids
-    current2future = dict(zip(current_ids, future_ids))
+    current2future = dict(list(zip(current_ids, future_ids)))
 
     #folder_path = 'data/streamflows/hydrosheds_euler9/'
     folder_path = "data/streamflows/narccap_ccsm-crcm"
@@ -268,14 +268,14 @@ def calculate_and_plot(return_period = 10,
             significance_counter = np.zeros( change.shape )
 
 
-        print 'minmax(std_current)'
-        print np.min(stdevs_current), np.max(stdevs_current)
-        print 'minmax(std_future)'
-        print np.min(stdevs_future), np.max(stdevs_future)
+        print('minmax(std_current)')
+        print(np.min(stdevs_current), np.max(stdevs_current))
+        print('minmax(std_future)')
+        print(np.min(stdevs_future), np.max(stdevs_future))
 
-        print 'min max min abs(rl_current - rl_future)'
+        print('min max min abs(rl_current - rl_future)')
         the_delta = np.abs(return_levels_future - return_levels_current)
-        print np.min(the_delta), np.max(the_delta), np.mean(the_delta)
+        print(np.min(the_delta), np.max(the_delta), np.mean(the_delta))
         
         #stdev = -1 - stands for undefined value
         condition = np.logical_and(np.abs(change) > 1.96 * ( stdevs_current + stdevs_future ),
@@ -290,7 +290,7 @@ def calculate_and_plot(return_period = 10,
         significance_counter[sign_index] += 1
 
 
-        print len(sign_index[0])
+        print(len(sign_index[0]))
 
         all_current.append(return_levels_current)
         all_future.append(return_levels_future)
@@ -303,7 +303,7 @@ def calculate_and_plot(return_period = 10,
 
 
         min_change = np.min(change)
-        print return_levels_current[change == min_change], return_levels_future[change == min_change], min_change
+        print(return_levels_current[change == min_change], return_levels_future[change == min_change], min_change)
         
         if not level_type == "high":
             delta = 100
@@ -324,7 +324,7 @@ def calculate_and_plot(return_period = 10,
 
         #temp change to condition
         #change = np.ma.masked_where(np.logical_not(condition), change)
-        print 'Plotting: current %s, future %s' % (current_id, future_id)
+        print('Plotting: current %s, future %s' % (current_id, future_id))
 
         current_id_to_changes[current_id] = change
         if ax is None:
@@ -366,7 +366,7 @@ def calculate_and_plot(return_period = 10,
         plus_change = None
         minus_change = None
 
-        for current_id, the_change in current_id_to_changes.iteritems():
+        for current_id, the_change in current_id_to_changes.items():
             if plus_change is None:
                 plus_change = (the_change > 0)
                 minus_change = (the_change < 0)
@@ -415,7 +415,7 @@ def calculate_and_plot(return_period = 10,
 
         not_significant = np.absolute(mean_future - mean_current) <= 1.96 * (mean_stds_current + mean_stds_future)
         not_significant = not_significant.astype(int)
-        print " sum(not_significant) = ", np.sum(not_significant)
+        print(" sum(not_significant) = ", np.sum(not_significant))
         not_significant = np.ma.masked_where(~(not_significant == 1), not_significant)
         not_significant *= 0.0
 
@@ -448,8 +448,8 @@ def get_column(index, lines, sep = ';'):
     with sep
     """
     selector = lambda x: x.split(sep)[index]
-    sel1 = map(selector, lines)
-    sel2 = map(float, sel1)
+    sel1 = list(map(selector, lines))
+    sel2 = list(map(float, sel1))
     return sel2
 
 
@@ -467,7 +467,7 @@ def plot_naveed_troubled_points(path = 'data/data_txt_naveed/TroubledGridCells_A
         if 'stationsri' in line.lower():
             break
 
-    print lines
+    print(lines)
 
     folder_path = 'data/streamflows/hydrosheds_euler9/'
     i_indices, j_indices = data_select.get_indices_from_file(folder_path + 'aex_discharge_1970_01_01_00_00.nc')
@@ -483,7 +483,7 @@ def plot_naveed_troubled_points(path = 'data/data_txt_naveed/TroubledGridCells_A
         plt.subplot(2,2,c)
         to_plot = np.ma.masked_all(xs.shape)
         data = get_column(c, lines)
-        print data
+        print(data)
         for i, j, v in zip(i_indices, j_indices, data):
             if v: #no color for 0
                 to_plot[i, j] = v
@@ -542,7 +542,7 @@ def plot_naveed_data(path = 'data/data_txt_naveed/3_all_for_plotting.csv'):
     sig95_cols = [9,10,11]
     sig90_cols = [14, 15, 16]
 
-    sets = zip(level_cols, return_periods, sig95_cols, sig90_cols)
+    sets = list(zip(level_cols, return_periods, sig95_cols, sig90_cols))
 
     subplot_count = 1
     for lev_col, period, sig95_col, sig90_col in sets:
@@ -654,4 +654,4 @@ if __name__ == "__main__":
     #plot_naveed_data()
     #plot_naveed_troubled_points()
     main()
-    print "Hello World"
+    print("Hello World")

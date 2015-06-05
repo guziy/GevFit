@@ -11,5 +11,5 @@ if __name__ == "__main__":
     p = Point(5,5)
     polygon = Polygon()
 
-    print p.to_wkt()
-    print "Hello World"
+    print(p.to_wkt())
+    print("Hello World")

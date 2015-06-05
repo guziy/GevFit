@@ -31,14 +31,14 @@ def gev_fit_all_members(high_flow = True, member_ids = [],
     for id in member_ids:
         param_file += '_' + id
     if os.path.isfile(param_file):
-        print 'delete {0}, to reoptimize'.format(param_file)
+        print('delete {0}, to reoptimize'.format(param_file))
         return pickle.load(open(param_file))
 
     #select data
     path_pattern = os.path.join(data_folder, file_name_pattern)
     all_extremes = []
     for id in member_ids:
-        print id
+        print(id)
         the_path = path_pattern.format(id)
         streamflow, times, i_indices, j_indices = data_select.get_data_from_file(the_path)
 
@@ -64,7 +64,7 @@ def gev_fit_all_members(high_flow = True, member_ids = [],
                                 end_month = end_month,
                                 event_duration = duration_days
                                 )
-            all_extremes[pos].extend(data1.values())
+            all_extremes[pos].extend(list(data1.values()))
 
     #axes order: (time, position)
     all_extremes = np.array(all_extremes).transpose()
@@ -73,7 +73,7 @@ def gev_fit_all_members(high_flow = True, member_ids = [],
         assert False, 'all_extremes = ' + str(all_extremes)
 
     #optimize
-    print all_extremes.shape
+    print(all_extremes.shape)
     assert all_extremes.shape[1] == 547, 'all_extremes.shape[1] != 547'
     param_set = gevfit.optimize_stationary_for_period_and_all_cells_using_data(
                                         data = all_extremes,
@@ -152,4 +152,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    print "Hello World"
+    print("Hello World")

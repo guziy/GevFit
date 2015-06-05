@@ -45,7 +45,7 @@ def get_extremes_list(data_path = "", member_ids = None, high_flow = True,
         streamflow, times, i_indices, j_indices = data_select.get_data_from_file(the_path)
 
 
-        domain_extremes = [[] for pos in xrange(len(i_indices))]
+        domain_extremes = [[] for pos in range(len(i_indices))]
 
         for pos, point_extrems in enumerate(domain_extremes):
             if high_flow:
@@ -62,7 +62,7 @@ def get_extremes_list(data_path = "", member_ids = None, high_flow = True,
                                                            start_month = period_start_month,
                                                            end_month = period_end_month
                                                            )
-            point_extrems.extend(extremes.values())
+            point_extrems.extend(list(extremes.values()))
 
         all_extremes.append(np.transpose( np.array(domain_extremes) ))
 
@@ -77,7 +77,7 @@ def kw_test(data):
     n_pos = data[0].shape[1]
     p_values = np.zeros((n_pos,))
 
-    for pos in xrange(n_pos):
+    for pos in range(n_pos):
         samples = [
             data2d[:, pos] for data2d in data
         ]
@@ -161,7 +161,7 @@ def get_key_data_list():
     return key_data_list
 
 
-def kw_test_for_means(current_climate = True, data_folder = 'data/streamflows/hydrosheds_euler9', months = range(1,13)):
+def kw_test_for_means(current_climate = True, data_folder = 'data/streamflows/hydrosheds_euler9', months = list(range(1,13))):
     """
     returns p-values resulting from kruskal - wallis test on annual means
     """
@@ -180,14 +180,14 @@ def kw_test_for_means(current_climate = True, data_folder = 'data/streamflows/hy
         #for each year and for each gridcell get mean value for the period
         means_dict = data_select.get_means_over_months_for_each_year(times, streamflow, months = months)
 
-        means_sorted_in_time = map( lambda x : x[1], sorted(means_dict.items(), key=lambda x: x[0]) )
+        means_sorted_in_time = [x[1] for x in sorted(list(means_dict.items()), key=lambda x: x[0])]
         data_matrix = np.array(means_sorted_in_time)
         real_means.append(data_matrix) #save modelled means
         #print "data_matrix.shape = ", data_matrix.shape
 
     n_positions = real_means[0].shape[1]
     p_values = np.zeros((n_positions,))
-    for pos in xrange(n_positions):
+    for pos in range(n_positions):
         samples = [
             data2d[:, pos] for data2d in real_means
         ]

@@ -34,8 +34,8 @@ def deriv_of_objective_func_stedinger(params, extremes):
     pass
 
 def test_deriv_stedinger():
-    print deriv_of_objective_func_stedinger([1000,1,1], [1])
+    print(deriv_of_objective_func_stedinger([1000,1,1], [1]))
 
 if __name__ == "__main__":
     test_deriv_stedinger()
-    print "Hello World"
+    print("Hello World")

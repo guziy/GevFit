@@ -29,7 +29,7 @@ def plot_cv_for_return_levels_current_and_future_and_change():
 
 
     extreme_types = ['high', 'low']
-    extreme_type_to_periods = dict(zip(extreme_types, [high_periods, low_periods]))
+    extreme_type_to_periods = dict(list(zip(extreme_types, [high_periods, low_periods])))
 
 
     i_indices, j_indices = data_select.get_indices_from_file()
@@ -48,7 +48,7 @@ def plot_cv_for_return_levels_current_and_future_and_change():
 
                 #calculate changes for each pair of members and each position
                 npos = len(pars_current)
-                for pos, pc, pf in zip(xrange(npos), pars_current, pars_future):
+                for pos, pc, pf in zip(range(npos), pars_current, pars_future):
                     if extreme_type == 'high':
                         c = gevfit.get_high_ret_level_stationary(pc, return_period)
                         f = gevfit.get_high_ret_level_stationary(pf, return_period)
@@ -87,9 +87,9 @@ def _plot_map_as_subplots(i_indices, j_indices, extremetype_retperiod_cv_map, ti
     plt.figtext(0.5, 0.05, title, horizontalalignment='center')
 
     max_value = 0.1
-    for extreme_type, ret_period_to_cv in extremetype_retperiod_cv_map.iteritems():
+    for extreme_type, ret_period_to_cv in extremetype_retperiod_cv_map.items():
         #max_value = 0.5 if extreme_type == 'low' else 2.5
-        for ret_period, cv_field in ret_period_to_cv.iteritems():
+        for ret_period, cv_field in ret_period_to_cv.items():
             to_plot = np.ma.masked_all(csfb.xs.shape)
 
             for i, j, cv in zip(i_indices, j_indices, cv_field):
@@ -126,7 +126,7 @@ def plot_signal_to_noise_ratio():
     plot_utils.apply_plot_params(width_pt=None, font_size=9, aspect_ratio=2.5)
 
     extreme_types = ['high', 'low']
-    extreme_type_to_periods = dict(zip(extreme_types, [high_periods, low_periods]))
+    extreme_type_to_periods = dict(list(zip(extreme_types, [high_periods, low_periods])))
 
     i_indices, j_indices = data_select.get_indices_from_file()
     i_subplot = 0
@@ -149,7 +149,7 @@ def plot_signal_to_noise_ratio():
                 
                 #calculate changes for each pair of members and each position
                 npos = len(pars_current)
-                for pos, pc, pf in zip(xrange(npos), pars_current, pars_future):
+                for pos, pc, pf in zip(range(npos), pars_current, pars_future):
                     if extreme_type == 'high':
                         c = gevfit.get_high_ret_level_stationary(pc, return_period)
                         f = gevfit.get_high_ret_level_stationary(pf, return_period)
@@ -166,7 +166,7 @@ def plot_signal_to_noise_ratio():
 
             #change if you want signal to noise ratio, currently it is cv (coefficient of variation 1/(signal-to-noise-ratio))
             the_values = the_std / np.abs(the_mean)
-            print the_values.min(), the_values.max()
+            print(the_values.min(), the_values.max())
             #the_values = the_mean
             to_plot = np.ma.masked_all(csfb.xs.shape)
 
@@ -181,7 +181,7 @@ def plot_signal_to_noise_ratio():
 
             plot_axes = plt.subplot(gs[i_subplot // 2, i_subplot % 2])
             i_subplot += 1
-            print 'just before plotting'
+            print('just before plotting')
 
             
             basin_boundaries.plot_basin_boundaries_from_shape(csfb.basemap, plotter = plt, linewidth = 1.)
@@ -220,4 +220,4 @@ if __name__ == "__main__":
     application_properties.set_current_directory()
     #plot_cv_for_return_levels_current_and_future_and_change()
     plot_signal_to_noise_ratio()
-    print "Hello World"
+    print("Hello World")

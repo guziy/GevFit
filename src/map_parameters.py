@@ -18,9 +18,9 @@ class MapParameters():
         xmin = xc - (nx - 1) / 2.0
         ymin = yc - (ny - 1) / 2.0
 
-        print 'These coordinates can be verified with cccma site points (2,2) and (181, 173) respectively'
-        print 'lower left: ', psxy2latlon(xmin, ymin)
-        print 'upper right: ', psxy2latlon(xmin + nx - 1 , ymin + ny - 1)
+        print('These coordinates can be verified with cccma site points (2,2) and (181, 173) respectively')
+        print('lower left: ', psxy2latlon(xmin, ymin))
+        print('upper right: ', psxy2latlon(xmin + nx - 1 , ymin + ny - 1))
 
         longitudes = np.zeros((nx, ny))
         latitudes = np.zeros((nx, ny))
@@ -58,4 +58,4 @@ def zoom_on_quebec(plt):
 polar_stereographic = MapParameters()
 
 if __name__ == "__main__":
-    print "Hello World"
+    print("Hello World")

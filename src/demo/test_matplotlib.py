@@ -14,22 +14,22 @@ from map_parameters import polar_stereographic
 
 if __name__ == "__main__":
 
-    print "matplotlib version"
-    print matplotlib.__version__
+    print("matplotlib version")
+    print(matplotlib.__version__)
 
 
-    print 'basemap'
-    print bm.__version__
+    print('basemap')
+    print(bm.__version__)
 
-    print 'numpy'
-    print np.__version__
+    print('numpy')
+    print(np.__version__)
 
 
     x = rand(150,100)
     #print x
     plt.pcolormesh(x)
     plt.savefig('test_pcolor.png', bbox_inches = 'tight')
-    print "Hello World"
+    print("Hello World")
 
 
     plt.figure()

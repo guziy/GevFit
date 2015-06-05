@@ -44,7 +44,7 @@ def apply_bootstrap_to_all_members_merged(file_paths = None,
     """
 
     if os.path.isfile(out_file):
-        print "{0} already exists, skipping ".format(out_file)
+        print("{0} already exists, skipping ".format(out_file))
         return
 
 
@@ -53,13 +53,13 @@ def apply_bootstrap_to_all_members_merged(file_paths = None,
     all_extremes = []
     streamflow = None
     for the_path in file_paths:
-        print the_path
+        print(the_path)
         streamflow, times, i_indices, j_indices = data_select.get_data_from_file(the_path)
 
         if not len(all_extremes):
-            all_extremes = [[] for i in xrange(streamflow.shape[1])]
+            all_extremes = [[] for i in range(streamflow.shape[1])]
 
-        for pos in xrange(streamflow.shape[1]):
+        for pos in range(streamflow.shape[1]):
             if high_flow:
                 data1 = data_select.get_period_maxima(streamflow[:, pos], times,
                                 start_date = start_date,
@@ -76,7 +76,7 @@ def apply_bootstrap_to_all_members_merged(file_paths = None,
                                 end_month = end_month,
                                 event_duration = duration_days
                                 )
-            all_extremes[pos].extend(data1.values())
+            all_extremes[pos].extend(list(data1.values()))
 
     #axes order: (time, position)
     all_extremes = np.array(all_extremes).transpose()
@@ -85,12 +85,12 @@ def apply_bootstrap_to_all_members_merged(file_paths = None,
                                         out_file = out_file,
                                         process_pool = process_pool,
                                         return_periods = return_periods,
-                                        positions = xrange(streamflow.shape[1]),
+                                        positions = range(streamflow.shape[1]),
                                         high_flow = high_flow,
                                         restrict_indices_to_member=True,
                                         n_values_per_member= all_extremes.shape[0] / len(file_paths)
                                         )
-    print "n_indices per member = ", all_extremes.shape[0] / len(file_paths)
+    print("n_indices per member = ", all_extremes.shape[0] / len(file_paths))
     pass
 
 
@@ -246,8 +246,8 @@ def plot_results():
         for row, ret_period in enumerate( return_periods ):
             #calculate changes in return levels
             func = lambda x: gevfit.get_high_ret_level_stationary(x, ret_period)
-            rl_c = map(func, pars_current)
-            rl_f = map(func, pars_future)
+            rl_c = list(map(func, pars_current))
+            rl_f = list(map(func, pars_future))
             
             rl_c = np.array(rl_c)
             rl_f = np.array(rl_f)
@@ -268,7 +268,7 @@ def plot_results():
             else:
                 low_limit = np.floor(min_change / 10.0) * 10
 
-            print "min change = {0}, low limit = {1}".format(min_change, low_limit)
+            print("min change = {0}, low limit = {1}".format(min_change, low_limit))
 
 
             for sig_coef, sig_name in zip(sig_coefs, sig_levels):
@@ -306,4 +306,4 @@ if __name__ == "__main__":
         main(n_samples = 1000)
     else:
         plot_results()
-    print "Hello World"
+    print("Hello World")

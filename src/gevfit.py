@@ -208,16 +208,16 @@ def qfunc(x, sigma, mu, ksi):
         return None
 
     if not result:
-        print x, mu, sigma
-        print the_base
-        print -1.0 / ksi
+        print(x, mu, sigma)
+        print(the_base)
+        print(-1.0 / ksi)
 
 
     message = 'in qfunc: result = {0}, x = {1}, sigma = {2}, mu = {3}, ksi = {4}, the_base = {5}'
     assert result > 0.0, message.format(result, x, sigma, mu, ksi, the_base)
 
     if isinf(result) or isnan(result):
-        print 'Too big numbers: ' , the_base, result
+        print('Too big numbers: ' , the_base, result)
         assert False, 'qfunc = {0}'.format(result)
         return None
     return result
@@ -335,8 +335,8 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
         pars.append(zero_fraction)
         lev = get_high_ret_level_stationary(pars, 10.0)
         if isnan(lev):
-            print pars
-            print extremes[indices].tolist()
+            print(pars)
+            print(extremes[indices].tolist())
             assert False, 'lev = {0}'.format(lev)
         return pars
 
@@ -386,9 +386,9 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
 
 
     if warnflag:
-        print list(extremes)
-        print warnflag
-        print pars
+        print(list(extremes))
+        print(warnflag)
+        print(pars)
         assert False, 'warnflag != 0'
 
 
@@ -396,17 +396,17 @@ def optimize_stationary_for_period(extremes, high_flow = True, use_lmoments = Fa
     assert z > 0, 'z <= 0'
     
     if z < 0:
-        print 'converged to negative objective function'
+        print('converged to negative objective function')
         return [None, None, None, zero_fraction]
 
 
 
     if z == BIG_NUM:
-        print 'high_flow = ', high_flow
-        print extremes
-        print extremes[indices].tolist()
-        print pars
-        print all_vecs
+        print('high_flow = ', high_flow)
+        print(extremes)
+        print(extremes[indices].tolist())
+        print(pars)
+        print(all_vecs)
  #       assert False
         return [None, None, None, zero_fraction]
 
@@ -451,11 +451,11 @@ def optimize_stationary_for_period_and_all_cells(
                 end_date = datetime(1999,12, 31,0,0),
                 event_duration = timedelta(days = 1)):
 
-    print paramfile
+    print(paramfile)
 
     #check whether optimization is required
     if os.path.isfile(paramfile):
-        print 'already optimized, if you want to reoptimize delete %s' % paramfile
+        print('already optimized, if you want to reoptimize delete %s' % paramfile)
         pars_set = pickle.load(open(paramfile))
         return pars_set
 
@@ -480,7 +480,7 @@ def optimize_stationary_for_period_and_all_cells(
                             end_month = end_month,
                             event_duration = event_duration
                             )
-        data.append(data1.values())
+        data.append(list(data1.values()))
 
 
     data = np.array(data).transpose()
@@ -527,7 +527,7 @@ def plot_low_flows(period = 10,
     plt.colorbar(ticks = int_ticker, format = '%.1f')
 
     zoom_to_qc()
-    print 'saving %s' % imagefile
+    print('saving %s' % imagefile)
     
     plt.savefig(imagefile, bbox_inches = 'tight')
     
@@ -539,7 +539,7 @@ def plot_high_flows(period = 10,
                     imagefile = 'figure.png',
                     pars_set = None,
                     indices_file = 'data/streamflows/hydrosheds_euler9/aex_discharge_1970_01_01_00_00.nc'):
-    print 'generating %s ' % imagefile
+    print('generating %s ' % imagefile)
 
     plt.clf()
     levs = []
@@ -549,8 +549,8 @@ def plot_high_flows(period = 10,
     for pars in pars_set:
         lev = get_high_ret_level_stationary(pars, period)
         if lev < 0:
-            print 'period = ', period
-            print 'pars = ', pars
+            print('period = ', period)
+            print('pars = ', pars)
             assert False, 'in plot_high_flows'
 
         assert lev >= 0, pars
@@ -560,7 +560,7 @@ def plot_high_flows(period = 10,
     for lev, i, j in zip(levs, i_list, j_list):
         assert np.isfinite(lev)
         if isinf(lev):
-            print lev
+            print(lev)
         to_plot[i,j] = lev
 
 
@@ -607,7 +607,7 @@ def get_levels_for_type_and_id(id, return_period = None, type = 'high'):
 def get_high_levels_for_id(id, prefix = 'gev_params_stationary', postfix = '_high' , return_period = 10):
 
     file = prefix + '_' + id + postfix
-    print file
+    print(file)
     pars_set = pickle.load(open(file))
 
     field = np.zeros((len(pars_set),))
@@ -647,7 +647,7 @@ def stationary():
 
     current_ids = ["ccsm-crcm-current"]
     future_ids = ["ccsm-crcm-future"]
-    current2future = dict(zip(current_ids, future_ids))
+    current2future = dict(list(zip(current_ids, future_ids)))
 
     current_start_date = datetime(1970, 1, 1, 0, 0)
     current_end_date = datetime(1999, 11, 23,0, 0)
@@ -707,7 +707,7 @@ def stationary():
                            pars_set = pars_set)
                            
 
-        print 'Finished optimizing for current climate'
+        print('Finished optimizing for current climate')
 
     
         for future_id in future_ids:
@@ -732,15 +732,15 @@ def stationary():
 
 
 
-    print 'Finished optimizing for future climate'
-    print 'Finished calculating return levels !!!'
+    print('Finished optimizing for future climate')
+    print('Finished calculating return levels !!!')
 
     plot_mean_changes = True
     if not plot_mean_changes:
         return
 
 ###############################current climate return levels
-    print 'Calculating mean high flow return levels for current climate ...'
+    print('Calculating mean high flow return levels for current climate ...')
     current_rl_means = {}
     future_rl_means = {}
     the_type_to_periods = {'high': high_return_periods, 'low': low_return_periods}
@@ -748,7 +748,7 @@ def stationary():
 
 
     keys = []
-    for the_type, periods in the_type_to_periods.iteritems():
+    for the_type, periods in the_type_to_periods.items():
         for period in periods:
             k = TypePeriodKey()
             k.type = the_type
@@ -889,11 +889,11 @@ def plot_directions(data_mask = None):
             u_plot[i, j] /= mag
             v_plot[i, j] /= mag
     
-    print 'plotting directions'
+    print('plotting directions')
 
 
     
-    print 'calculated magnitude'
+    print('calculated magnitude')
 
     indices = ~(data_mask.mask)
     m.quiver(xs[indices], ys[indices], u_plot[indices], v_plot[indices], scale = 6.5, width = 0.01, units = 'inches')
@@ -916,7 +916,7 @@ def test():
             0.0033022623974829912, 0.0021143041085451841, 0.001547978725284338,
             0.0013833490666002035, 0.0042443717829883099, 0.0024236994795501232]
 
-    print BIG_NUM
+    print(BIG_NUM)
 
 
 
@@ -933,8 +933,8 @@ def test_lm():
          379.55596923828125, 330.80569458007812, 312.35330200195312, 251.79550170898438,
          372.66928100585938, 239.72474670410156]
 
-    print get_initial_params_using_lm(x)
-    print np.mean(x)
+    print(get_initial_params_using_lm(x))
+    print(np.mean(x))
     pars = [ 128.28104749,  578.4927539 ,    0.62410911]
     data = [588.4747314453125, 693.6640625, 519.03155517578125, 716.58013916015625,
             686.29168701171875, 432.65786743164062, 682.72113037109375, 730.12603759765625,
@@ -947,9 +947,9 @@ def test_lm():
 
     the_moments = lmoments.samlmu(sorted(data),5)
     pars = lmoments.pelgev(the_moments[0:3])
-    print pars
+    print(pars)
     mu, sigma, xi = pars
-    print objective_function_stationary_high([sigma, mu, -xi], data)
+    print(objective_function_stationary_high([sigma, mu, -xi], data))
 
 
 
@@ -962,4 +962,4 @@ if __name__ == "__main__":
     stationary()
 #    test_lm()
 
-    print "Hello World"
+    print("Hello World")
