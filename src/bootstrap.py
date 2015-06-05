@@ -92,7 +92,7 @@ def apply_bootstrap_to_extremes(all_extremes, n_samples = 10,
             sampled_indices = generate_indices(all_extremes.shape[0])
         else:
             sampled_indices = generate_indices_restrict_data_to_member(all_extremes.shape[0], n_values_per_member)
-        print "sampled indices: ", sampled_indices
+
         #input parameters
         input.append((i, sampled_indices, all_extremes,
                     return_periods, high_flow, positions))
@@ -272,25 +272,18 @@ def plot(member = 'aex', low_return_periods = [], high_return_periods = []):
 
 import time
 def main(n_samples = 20):
-    low_start_month = 1
-    low_end_month = 5
     low_return_periods = [2,5,10]
 
-    high_start_month = 3
-    high_end_month = 7
     high_return_periods = [10, 30, 50]
-
-    low_duration = timedelta(days = 15)
-    high_duration = timedelta(days = 1)
 
 
     #process pool
-    n_processes = int(n_samples ** 0.6) if n_samples > 100 else n_samples
+    n_processes = 12
     process_pool = Pool(processes = n_processes)
 
 
-    data_folder = 'data/streamflows/hydrosheds_euler9/'
-
+    #data_folder = 'data/streamflows/hydrosheds_euler9/'
+    data_folder = "data/streamflows/narccap_ccsm-crcm"
 
     hi = "high"
     lo = "low"
@@ -318,8 +311,14 @@ def main(n_samples = 20):
     future_end_date = datetime(2070,12, 31,0,0)
 
 
+    #current_ids = members.current_ids
+    #future_ids = members.future_ids
+    current_ids = ["ccsm-crcm-current"]
+    future_ids = ["ccsm-crcm-future"]
+
+
     plot_deviations = False
-    for member in members.current_ids:
+    for member in current_ids:
         data_path = '%s_discharge_1970_01_01_00_00.nc' % member
         data_path = os.path.join(data_folder, data_path)
         for extreme in extreme_types:
@@ -341,7 +340,7 @@ def main(n_samples = 20):
                          high_return_periods = high_return_periods)
 
 
-    for member in members.future_ids:
+    for member in future_ids:
         data_path = '%s_discharge_2041_01_01_00_00.nc' % member
         data_path = os.path.join(data_folder, data_path)
 
@@ -370,7 +369,7 @@ def main(n_samples = 20):
 if __name__ == "__main__":
     t0 = time.time()
     print os.getcwd()
-    main(n_samples = 5)
+    main(n_samples = 1000)
     t1 = time.time()
     print 'Execution time is %f seconds ' % (t1 - t0)
     print "Hello World"

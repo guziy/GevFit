@@ -1,3 +1,6 @@
+import os
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 
 __author__="huziy"
@@ -69,10 +72,13 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
          colorbar_orientation = 'vertical' , basemap = None,
          colorbar_tick_locator = LinearLocator(numticks = 6),
          colorbar_label_format = '%.1f', upper_limited = False,
-         not_significant_mask = None, show_colorbar = True, impose_lower_limit = None):
+         not_significant_mask = None, show_colorbar = True,
+         impose_lower_limit = None, imagefile = None, ax = None):
 
 
-
+    fig = None
+    if imagefile is not None:
+        fig = plt.figure()
     to_plot = np.ma.masked_all(xs.shape)
     sign_mask_2d = np.ma.masked_all(xs.shape)
 
@@ -84,7 +90,7 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
             sign_mask_2d[i_index, j_index] = significance
         #plot not significant mask
         basemap.pcolormesh(xs, ys, sign_mask_2d.copy(), cmap = mpl.cm.get_cmap('gist_gray', 3),
-                     shading = 'flat', vmin = -1, vmax = 1 )
+                     shading = 'flat', vmin = -1, vmax = 1, ax = ax )
     else:
         the_zip = zip(i_indices, j_indices, data_1d)
         for i_index, j_index, the_data in the_zip:
@@ -93,21 +99,22 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
 
 
 
-    plot_axes = plt.gca()
+
     image = basemap.pcolormesh(xs, ys, to_plot.copy(), cmap = color_map,
-                    vmin = minmax[0], vmax = minmax[1], shading = 'flat', rasterized = False )
+                    vmin = minmax[0], vmax = minmax[1], shading = 'flat', rasterized = False, ax = ax )
 
 
-    plot_basin_boundaries_from_shape(basemap, plotter = plt, linewidth = 1, edge_color = 'k')
-    basemap.drawcoastlines(linewidth = 0.5)
+    plot_basin_boundaries_from_shape(basemap, plotter = plt, linewidth = 1, edge_color = 'k', ax = ax)
+    basemap.drawcoastlines(linewidth = 0.5, ax = ax)
 
     #plot_utils.draw_meridians_and_parallels(basemap, step_degrees = 30)
 
 
-
+    if ax is None:
+        ax = plt.gca()
     x_min, x_max, y_min, y_max = plot_utils.get_ranges(xs[i_indices, j_indices], ys[i_indices, j_indices])
-    plt.xlim(x_min, x_max)
-    plt.ylim(y_min, y_max)
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
 
     #draw a label
     #xmin, xmax = plt.xlim()
@@ -117,14 +124,14 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
     #plt.annotate(label, xy = (xmax - 0.1 * dx, ymax - 0.1 * dy), font_properties = FontProperties(size = 25))
 
     if title == "":
-        plot_axes.set_title(label)
+        ax.set_title(label)
     else:
-        plot_axes.set_title(title)
+        ax.set_title(title)
 
     #plot colorbar
     if show_colorbar:
         from mpl_toolkits.axes_grid1 import make_axes_locatable
-        divider = make_axes_locatable(plot_axes)
+        divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", "8%", pad="3%")
 
         cb = plt.colorbar(image, #ticks = colorbar_tick_locator,
@@ -158,32 +165,40 @@ def plot(data_1d, i_indices, j_indices, xs, ys,
             labels[-1] = '$\\geq$' + labels[-1]
             cb.ax.set_yticklabels(labels)
 
-
+    #save to a file if necessary
+    if fig is not None:
+        fig.savefig(imagefile, bbox_inches = "tight")
 
 
 
 def calculate_and_plot(return_period = 10,
-                       return_level_function = ret_level_getters[0]):
+                       return_level_function = ret_level_getters[0], ax = None):
 
-
+    save_fig_to_file = (ax is None)
     if return_level_function == gevfit.get_high_ret_level_stationary:
         level_type = 'high'
     else:
         level_type = 'low'
 
-    plt.figure()
+    fig = plt.figure()
+    assert isinstance(fig, Figure)
+
 
     save_to_txt = False
+    current_ids = ["ccsm-crcm-current"] #members.current_ids
+    future_ids = ["ccsm-crcm-future"] #members.future_ids
+    current2future = dict(zip(current_ids, future_ids))
 
-    folder_path = 'data/streamflows/hydrosheds_euler9/'
-    i_indices, j_indices = data_select.get_indices_from_file(folder_path + 'aex_discharge_1970_01_01_00_00.nc')
+    #folder_path = 'data/streamflows/hydrosheds_euler9/'
+    folder_path = "data/streamflows/narccap_ccsm-crcm"
+    coord_file = os.path.join(folder_path, '{0}_discharge_1970_01_01_00_00.nc'.format(current_ids[0]))
+    i_indices, j_indices = data_select.get_indices_from_file(coord_file)
     significance_counter = None
     #plt.subplots_adjust(left = 0., hspace = 0.2, wspace = 0.2)
 
 
 
-
-    labels = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
+    labels = ["", "(b)", "(c)", "(d)", "(e)", "(f)"]
 
     ##for querying high flow data for saving to text file
     current_query = None
@@ -221,10 +236,10 @@ def calculate_and_plot(return_period = 10,
     all_future = []
     all_stds_current = []
     all_stds_future = []
-    for k, current_id in enumerate(members.current_ids):
+    for k, current_id in enumerate(current_ids):
         if level_type == 'high' and save_to_txt:
             current_path = folder_path + '{0}_discharge_1970_01_01_00_00.nc'.format(current_id)
-            future_path = folder_path + '{0}_discharge_2041_01_01_00_00.nc'.format(members.current2future[current_id])
+            future_path = folder_path + '{0}_discharge_2041_01_01_00_00.nc'.format(current2future[current_id])
             current_data, times_current, x_indices, y_indices = data_select.get_data_from_file(current_path)
             future_data, times_future, x_indices, y_indices = data_select.get_data_from_file(future_path)
 
@@ -240,7 +255,7 @@ def calculate_and_plot(return_period = 10,
 
 
         #get future return levels
-        future_id = members.current2future[current_id]
+        future_id = current2future[current_id]
         pars_list = get_pars_for_member_and_type(future_id, level_type)
         return_levels_future = np.zeros(len(pars_list))
         for pos, pars in enumerate(pars_list):
@@ -292,10 +307,10 @@ def calculate_and_plot(return_period = 10,
         
         if not level_type == "high":
             delta = 100
-            lower_limit = 0 if min_change >= 0 else -20
+            lower_limit = 0 if min_change >= 0 else np.floor(min_change / 10.0) * 10
         else:
             delta = 50
-            lower_limit = -30
+            lower_limit = np.floor(min_change / 10.0 ) * 10
 
 
         not_significant = np.zeros(change.shape)
@@ -312,18 +327,18 @@ def calculate_and_plot(return_period = 10,
         print 'Plotting: current %s, future %s' % (current_id, future_id)
 
         current_id_to_changes[current_id] = change
-        plt.subplot(gs[k // 2, k % 2])
+        if ax is None:
+            ax = fig.add_subplot(gs[k // 2, k % 2])
         plot(change , i_indices, j_indices, xs, ys,
-                    title = "", label = labels[k],
+                    title = "{0}-year {1} flow".format(return_period, level_type), label = labels[k],
                     color_map = mycolors.get_red_blue_colormap(ncolors = 20), units = '%',
                     basemap = basemap, minmax = (-delta, delta),
                     colorbar_label_format = '%d',
                     upper_limited = True, colorbar_tick_locator = LinearLocator(numticks = 11),
-                    not_significant_mask = None #not_significant
-                    , impose_lower_limit=lower_limit
+                    not_significant_mask = not_significant
+                    , impose_lower_limit=lower_limit, ax= ax
 
                     )
-
         if return_period == 10 and level_type == 'high' and save_to_txt:
             txt_saver.save_to_file_rls_and_sign(current_id, return_period,
                                       return_levels_current, return_levels_future,
@@ -333,7 +348,7 @@ def calculate_and_plot(return_period = 10,
 
 
 
-        
+
     plt.subplot(gs[2,1])
 
     plot_sign_count = False
@@ -389,12 +404,14 @@ def calculate_and_plot(return_period = 10,
         mean_stds_current = np.mean( all_stds_current, axis = 0 )
         mean_stds_future = np.mean( all_stds_future, axis = 0 )
 
+        min_change = np.min((mean_future - mean_current)/mean_current * 100.0)
         if not level_type == "high":
             delta = 100
-            lower_limit = 0 if np.min(mean_future - mean_current) >= 0 else -20
+
+            lower_limit = 0 if min_change >= 0 else np.floor(min_change / 10.0) * 10
         else:
-            delta = 50
-            lower_limit = -30
+            delta = 100
+            lower_limit = np.floor(min_change / 10.0 ) * 10
 
         not_significant = np.absolute(mean_future - mean_current) <= 1.96 * (mean_stds_current + mean_stds_future)
         not_significant = not_significant.astype(int)
@@ -419,9 +436,10 @@ def calculate_and_plot(return_period = 10,
 
         pass
 
-    plt.tight_layout()
-    plt.savefig('%d_%s_change_rl.png' % (return_period, level_type))
 
+    if save_fig_to_file:
+        plt.tight_layout()
+        plt.savefig('%d_%s_change_rl.png' % (return_period, level_type))
 
 
 def get_column(index, lines, sep = ';'):
@@ -601,18 +619,32 @@ def plot_naveed_data(path = 'data/data_txt_naveed/3_all_for_plotting.csv'):
 
 def main():
 
-    high_ret_periods = [10, 30]
-    low_ret_periods = [2, 5]
+    high_ret_periods = [10]
+    low_ret_periods = [2]
 
     #plot_utils.apply_plot_params(font_size=15, width_pt=900, aspect_ratio=2.5)
     plot_utils.apply_plot_params(width_pt=None, font_size=9, aspect_ratio=2.5)
 
+
+
+    fig = plt.figure()
+    assert isinstance(fig, Figure)
+    gs = gridspec.GridSpec(3,2)
+
+    ax1 = fig.add_subplot(gs[0,0])
+    ax2 = fig.add_subplot(gs[0,1])
+
     for ret_period in high_ret_periods:
-        calculate_and_plot(ret_period, gevfit.get_high_ret_level_stationary)
+        calculate_and_plot(ret_period, gevfit.get_high_ret_level_stationary, ax = ax1)
 
     for ret_period in low_ret_periods:
-        calculate_and_plot(ret_period, gevfit.get_low_ret_level_stationary)
-       
+        calculate_and_plot(ret_period, gevfit.get_low_ret_level_stationary, ax = ax2)
+
+
+
+    fig.tight_layout()
+    fig.savefig("rl_changes.png")
+
 
     pass
 

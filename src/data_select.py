@@ -1,8 +1,9 @@
+from netCDF4 import Dataset
+
 __author__="huziy"
 __date__ ="$31.12.2010 4:42:33$"
 
 
-from mpl_toolkits.basemap import NetCDFFile
 import numpy as np
 from datetime import timedelta
 from datetime import datetime
@@ -10,7 +11,7 @@ from datetime import datetime
 from data.query_object import QueryObject
 
 def get_field_from_file(path = '', field_name = ''):
-    fpin = NetCDFFile(path)
+    fpin = Dataset(path)
     the_field = fpin.variables[field_name][:,:]
     fpin.close()
     return the_field
@@ -18,7 +19,7 @@ def get_field_from_file(path = '', field_name = ''):
 def get_data_from_file(path):
     date_format = '%Y_%m_%d_%H_%M'
     print path
-    fpin = NetCDFFile(path)
+    fpin = Dataset(path)
         
     
     times = fpin.variables['time'][:]
@@ -38,7 +39,7 @@ def get_data_from_file(path):
 
 #get i_indices and j_indices from a file
 def get_indices_from_file(path = 'data/streamflows/hydrosheds_euler9/aex_discharge_1970_01_01_00_00.nc'):
-    fpin = NetCDFFile(path)
+    fpin = Dataset(path)
     vars = fpin.variables
 
     x, y = vars['x-index'][:], vars['y-index'][:]

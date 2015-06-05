@@ -1,10 +1,13 @@
+from netCDF4 import Dataset
+from matplotlib.figure import Figure
 from matplotlib.ticker import LinearLocator
 import os.path
+import plot_utils
+
 __author__="huziy"
 __date__ ="$22 oct. 2010 12:00:55$"
 
 
-from mpl_toolkits.basemap import NetCDFFile
 import data_select
 from math import isnan
 from math import isinf
@@ -31,7 +34,7 @@ import matplotlib as mpl
 import matplotlib_helpers.my_colormaps as my_cm
 
 from datetime import timedelta
-
+from matplotlib.gridspec import GridSpec
 import members
 import pylab
 inches_per_pt = 1.0 / 72.27               # Convert pt to inch
@@ -41,7 +44,6 @@ fig_height = fig_width * golden_mean      # height in inches
 fig_size = [fig_width,  fig_height]
 
 font_size = 25
-
 def zoom_to_qc():
     ymin, ymax = plt.ylim()
     plt.ylim(ymin + 0.05 * (ymax - ymin) , ymax * 0.25)
@@ -69,7 +71,7 @@ import pickle
 #set current directory to the root directory of the project
 application_properties.set_current_directory()
 
-import lmoments
+#import lmoments
 
 from map_parameters import polar_stereographic
 
@@ -171,11 +173,9 @@ def plot_data(data = None, imagefile = 'image.png',
     cb = plt.colorbar(ticks = ticks_locator, format = "%.1f")
     cb.ax.set_ylabel(units)
 
-    ymin, ymax = plt.ylim()
-    plt.ylim(ymin + 0.05 * (ymax - ymin) , ymax * 0.25)
-#
-    xmin, xmax = plt.xlim()
-    plt.xlim(xmin + (xmax - xmin) * 0.55, 0.72*xmax)
+    x1, x2, y1, y2 = plot_utils.get_ranges(xs[i_list, j_list], ys[i_list, j_list])
+    plt.xlim(x1, x2)
+    plt.ylim(y1, y2)
 
     
     if imagefile is not None:
@@ -637,25 +637,32 @@ class TypePeriodKey():
 ### changes between current and future climate
 def stationary():
 
-    data_folder = 'data/streamflows/hydrosheds_euler9'
+    #data_folder = 'data/streamflows/hydrosheds_euler9'
+    data_folder = "data/streamflows/narccap_ccsm-crcm"
+
     current_data_path_pattern = '%s_discharge_1970_01_01_00_00.nc'
     future_data_path_pattern = '%s_discharge_2041_01_01_00_00.nc'
 
+    i_list, j_list = data_select.get_indices_from_file()
+
+    current_ids = ["ccsm-crcm-current"]
+    future_ids = ["ccsm-crcm-future"]
+    current2future = dict(zip(current_ids, future_ids))
 
     current_start_date = datetime(1970, 1, 1, 0, 0)
-    current_end_date = datetime(1999, 12, 31,0, 0)
+    current_end_date = datetime(1999, 11, 23,0, 0)
 
     future_start_date = datetime(2041, 1, 1, 0, 0)
-    future_end_date = datetime(2070, 12, 31,0, 0)
+    future_end_date = datetime(2070, 11, 23,0, 0)
 
 
-    high_return_periods = [10, 30, 50]
+    high_return_periods = [10]
     high_start_month = 3
     high_end_month = 7
     high_event_duration = timedelta(days = 1)
 
 
-    low_return_periods = [2, 5, 10]
+    low_return_periods = [2]
     low_start_month = 1
     low_end_month = 5
     low_event_duration = timedelta(days = 15)
@@ -679,7 +686,7 @@ def stationary():
         end_month = low_end_month if extreme_type == 'low' else high_end_month
         event_duration = low_event_duration if extreme_type == 'low' else high_event_duration
 
-        for current_id in members.current_ids:
+        for current_id in current_ids:
             param_file = 'gev_params_stationary'
             param_file += '_' + current_id + '_' + extreme_type
             data_file = current_data_path_pattern % current_id
@@ -703,7 +710,7 @@ def stationary():
         print 'Finished optimizing for current climate'
 
     
-        for future_id in members.future_ids:
+        for future_id in future_ids:
             param_file = 'gev_params_stationary'
             param_file += '_' + future_id + '_' + extreme_type
             data_file = future_data_path_pattern % future_id
@@ -728,7 +735,7 @@ def stationary():
     print 'Finished optimizing for future climate'
     print 'Finished calculating return levels !!!'
 
-    plot_mean_changes = False
+    plot_mean_changes = True
     if not plot_mean_changes:
         return
 
@@ -759,12 +766,14 @@ def stationary():
 
 
     #collect return levels for corresponding type(high , low) and return period for each member and then take mean
-    for current_id in members.current_ids:
+    for current_id in current_ids:
         for key in keys:
-            future_id = members.current2future[current_id]
+            future_id = current2future[current_id]
             the_field_current = get_levels_for_type_and_id(current_id, return_period = key.return_period, type = key.type)
             the_field_future = get_levels_for_type_and_id(future_id, return_period = key.return_period, type = key.type)
 
+            assert isinstance(the_field_current, np.ndarray)
+            assert isinstance(the_field_future, np.ndarray)
 
             indices = np.where((the_field_current > 0) & (the_field_future >= 0) )
             to_plot = np.ma.masked_all(the_field_current.shape)
@@ -818,27 +827,41 @@ def stationary():
 #### return period.
 ####
 
-
-    for key in keys:
+    plot_utils.apply_plot_params(width_pt=None, font_size=9, aspect_ratio=2.5)
+    fig = plt.figure()
+    assert isinstance(fig, Figure)
+    gs = GridSpec(3,2, height_ratios=[1,1,1])
+    for i, key in enumerate(keys):
         current = current_rl_means[key]
         future = future_rl_means[key]
         indices = np.where((current > 0) & (future >= 0))
-        to_plot = np.ma.masked_all(current.shape)
-        to_plot[indices] = (future[indices] - current[indices]) / current[indices] * 100.0
+        #to_plot = np.ma.masked_all(current.shape)
+        to_plot = (future[indices] - current[indices]) / current[indices] * 100.0
 
-        delta = np.max(np.abs(to_plot[indices]))
+        delta = np.max(np.abs(to_plot))
 
-        if delta > 100:
-            delta = 125
+        min_change = np.min(to_plot)
+
+        if not key.type == "high":
+            delta = 100
+            lower_limit = 0 if min_change >= 0 else np.floor(min_change / 10.0) * 10
         else:
-            delta = 40
+            delta = 50
+            lower_limit = np.floor(min_change / 10.0 ) * 10
 
-        plot_data(data = to_plot, imagefile = '%s_%dyr_mean_change.png' % (key.type, key.return_period),
+        fig.add_subplot(gs[i // 2, i % 2])
+        csfb.plot(to_plot,  i_list, j_list, xs, ys,
+              imagefile = None, #'%s_%dyr_mean_change.png' % (key.type, key.return_period),
               units = '%', minmax = (-delta, delta),
-              color_map = my_cm.get_red_blue_colormap(ncolors = 16), #mpl.cm.get_cmap('RdYlBu',20),
-              title = '{0},return period {1}, mean changes'.format(key.type, key.return_period),
-              ticks_locator = LinearLocator(numticks = 9)
+              color_map = my_cm.get_red_blue_colormap(ncolors = 20), #mpl.cm.get_cmap('RdYlBu',20),
+              title = '{0}-year {1} flow'.format( key.return_period, key.type),
+              colorbar_tick_locator = LinearLocator(numticks = 11), upper_limited=True,
+              impose_lower_limit= lower_limit, basemap=polar_stereographic.basemap
               )
+
+    #gs.update()
+    plt.tight_layout(h_pad = 2)
+    fig.savefig("ccsm-crcm-rl-changes.png")
 
 
 def plot_directions(data_mask = None):
@@ -851,7 +874,7 @@ def plot_directions(data_mask = None):
     v_plot = np.ma.masked_all(xs.shape)
 
 
-    f = NetCDFFile('data/hydrosheds/directions.nc')
+    f = Dataset('data/hydrosheds/directions.nc')
     inext = f.variables['flow_direction_index0'][:]
     jnext = f.variables['flow_direction_index1'][:]
 
@@ -880,6 +903,7 @@ def plot_directions(data_mask = None):
 
 
 def test():
+    import lmoments
     pars = [8.4116509126033642e-05, 0.00084966170834377408, 0.10000000000000001]
     vals = [0.0010247972095385194, 0.0010247972095385194, 0.0012944934424012899,
             0.0042147189378738403, 0.00098561809863895178, 0.00095898169092833996,
@@ -892,7 +916,6 @@ def test():
             0.0033022623974829912, 0.0021143041085451841, 0.001547978725284338,
             0.0013833490666002035, 0.0042443717829883099, 0.0024236994795501232]
 
-    print objective_function_stationary(pars, vals) == BIG_NUM
     print BIG_NUM
 
 
@@ -900,6 +923,7 @@ def test():
 
 
 def test_lm():
+    import lmoments
     x = [360.228515625, 513.506103515625, 273.85031127929688, 340.94839477539062,
          244.13925170898438, 283.414306640625, 394.42819213867188, 284.3604736328125,
          281.26956176757812, 241.46173095703125, 489.75482177734375, 236.31536865234375,
@@ -932,6 +956,8 @@ def test_lm():
     
 
 if __name__ == "__main__":
+    import calculate_significance_from_bootstrap as csfb
+
 #    fit_merged_for_current_and_future()
     stationary()
 #    test_lm()
